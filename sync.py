@@ -3,12 +3,12 @@ import urllib.request
 import zipfile
 import shutil
 
-# Cambia esto por tu usuario de GitHub una vez creado el repo:
-# Formato: https://github.com/TU_USUARIO/TU_REPO/releases/download/latest/catalog.db.zip
+# URL directa del release de tu repositorio:
+DEFAULT_RELEASE_URL = "https://github.com/JulianDvd1/Tracker-scanner/releases/download/latest/catalog.db.zip"
 DB_PATH = os.path.join(os.path.dirname(__file__), "catalog.db")
 ZIP_PATH = os.path.join(os.path.dirname(__file__), "catalog.db.zip")
 
-def sync_catalog(release_url: str):
+def sync_catalog(release_url: str = DEFAULT_RELEASE_URL):
     print(f" Descargando catálogo actualizado desde GitHub...")
     try:
         urllib.request.urlretrieve(release_url, ZIP_PATH)
