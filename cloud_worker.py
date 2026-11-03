@@ -10,18 +10,15 @@ import argparse
 from typing import List, Dict, Any, Optional
 
 DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
-DROPI_TOKEN = os.getenv("DROPI_TOKEN")
+# Limpiamos rigurosamente cualquier espacio, comilla o salto de línea invisible
+DROPI_TOKEN = os.getenv("DROPI_TOKEN", "").strip().strip('"').strip("'")
 
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
 MIN_STOCK = 15
 MIN_MARGIN = 18000
-PAGE_SIZE = 40  # Tamaño nativo de Dropi
+PAGE_SIZE = 40
 
-USER_AGENTS = [
-    "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "WordPress/6.4; Dropify"
-]
+USER_AGENT = "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)"
 
 def classify_tier(p: dict) -> str:
     plan = str(p.get("supplier_plan") or "").upper()
@@ -70,11 +67,12 @@ def init_worker_db(db_path: str):
     conn.commit()
     conn.close()
 
-async def fetch_page(session: aiohttp.ClientSession, page: int) -> List[Dict[str, Any]]:
+async def fetch_page(session: aiohttp.ClientSession, page: int, log_diagnostic: bool = False) -> List[Dict[str, Any]]:
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
+        "Accept": "application/json, text/plain, */*",
         "dropi-integration-key": DROPI_TOKEN,
-        "User-Agent": random.choice(USER_AGENTS)
+        "User-Agent": USER_AGENT
     }
     
     start_data = (page - 1) * PAGE_SIZE
@@ -89,36 +87,45 @@ async def fetch_page(session: aiohttp.ClientSession, page: int) -> List[Dict[str
         "integration": True
     }
 
-    # Pausa intencional de 0.85s: Dropi NUNCA activará el rate-limit a este ritmo humano
-    await asyncio.sleep(0.85 + random.uniform(0.05, 0.2))
+    await asyncio.sleep(0.75 + random.uniform(0.05, 0.15))
 
     for attempt in range(1, 4):
         try:
-            async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+            async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
+                text = await resp.text()
+
+                if log_diagnostic:
+                    print(f" [DIAGNÓSTICO INICIAL] HTTP Status: {resp.status} | Respuesta: {text[:140]}", flush=True)
+
                 if resp.status == 200:
-                    data = await resp.json()
-                    if data.get("isSuccess"):
-                        return data.get("objects", [])
+                    try:
+                        data = json.loads(text)
+                        if data.get("isSuccess"):
+                            return data.get("objects", [])
+                    except Exception:
+                        pass
                     return []
                 elif resp.status == 429:
-                    wait_time = attempt * 15
-                    print(f" [429 Rate-Limit en pág {page}] Pausa preventiva de {wait_time}s para vaciar cola...", flush=True)
+                    wait_time = attempt * 12
+                    print(f" [429 Rate-Limit] Pausa de {wait_time}s...", flush=True)
                     await asyncio.sleep(wait_time)
                 elif resp.status == 401:
-                    print(f" [401 Error] Esperando 12s para refrescar conexión en pág {page}...", flush=True)
-                    await asyncio.sleep(12)
+                    print(f" [401 Error pág {page}] Detalle: {text[:100]}", flush=True)
+                    await asyncio.sleep(8)
                 else:
                     await asyncio.sleep(2)
         except Exception as e:
             if attempt == 3:
-                print(f" Error conexión en pág {page}: {e}", flush=True)
+                print(f" Error en pág {page}: {e}", flush=True)
             await asyncio.sleep(2)
     return []
 
 async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 800):
     if not DROPI_TOKEN:
-        print(" ERROR FATAL: DROPI_TOKEN no configurado en variables de entorno.", flush=True)
+        print(" ERROR: DROPI_TOKEN no configurado en GitHub Secrets.", flush=True)
         sys.exit(1)
+
+    print(f" Longitud del token detectado: {len(DROPI_TOKEN)} caracteres (Comienza con: {DROPI_TOKEN[:10]}...)", flush=True)
 
     pages_per_worker = total_pages // total_workers
     start_page = ((worker_id - 1) * pages_per_worker) + 1
@@ -131,20 +138,19 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
     conn = sqlite3.connect(db_filename)
     cursor = conn.cursor()
 
-    total_prods_assigned = (end_page - start_page + 1) * PAGE_SIZE
-    print(f"\n=======================================================", flush=True)
-    print(f" WORKER #{worker_id} / {total_workers} ACTIVO", flush=True)
-    print(f" - Rango: Páginas {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
-    print(f" - Ritmo seguro: 1 petición/segundo (Cero saturación)", flush=True)
-    print(f"=======================================================\n", flush=True)
+    print(f"\n=== WORKER #{worker_id} / {total_workers} INICIADO ===", flush=True)
+    print(f" - Rango: Páginas {start_page} a {end_page} (~{(end_page - start_page + 1) * PAGE_SIZE:,} productos)", flush=True)
+    print(f" - Ritmo seguro: 1 petición/segundo", flush=True)
 
     saved_count = 0
     start_time = time.time()
 
     conn_tcp = aiohttp.TCPConnector(limit=3, ssl=False)
     async with aiohttp.ClientSession(connector=conn_tcp) as session:
-        for page in range(start_page, end_page + 1):
-            objects = await fetch_page(session, page)
+        for idx, page in enumerate(range(start_page, end_page + 1)):
+            # En la primera petición de cada worker imprimimos el diagnóstico exacto
+            is_first = (idx == 0)
+            objects = await fetch_page(session, page, log_diagnostic=is_first)
             now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
 
             for item in objects:
@@ -201,8 +207,7 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
 
     conn.commit()
     conn.close()
-    total_elapsed = time.time() - start_time
-    print(f"\n WORKER #{worker_id} FINALIZADO EN {total_elapsed:.1f}s! Guardados: {saved_count:,} productos.", flush=True)
+    print(f"\n WORKER #{worker_id} FINALIZADO EN {time.time() - start_time:.1f}s! Total guardados: {saved_count:,}", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
