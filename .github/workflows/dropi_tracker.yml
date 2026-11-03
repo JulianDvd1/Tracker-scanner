@@ -35,7 +35,7 @@ jobs:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 4 --total-pages 1500
+          python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 4 --total-pages 800
 
       - name: Subir artefacto parcial
         uses: actions/upload-artifact@v4
