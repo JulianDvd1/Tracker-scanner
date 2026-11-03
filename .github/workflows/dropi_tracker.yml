@@ -1,0 +1,73 @@
+name: Dropi Matrix Scanner
+
+on:
+  schedule:
+    # Corre cada 2 horas automáticamente las 24 horas del día
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Permite ejecutarlo manualmente con 1 clic cuando tú quieras
+
+jobs:
+  scrape:
+    name: Worker ${{ matrix.worker_id }} / 10
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        worker_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install aiohttp
+
+      - name: Ejecutar Worker #${{ matrix.worker_id }}
+        env:
+          DROPI_TOKEN: ${{ secrets.DROPI_TOKEN }}
+        run: |
+          python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 10 --total-pages 1500
+
+      - name: Subir artefacto parcial
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker_data_${{ matrix.worker_id }}
+          path: worker_data_${{ matrix.worker_id }}.db
+          retention-days: 1
+
+  merge:
+    name: Fusionar y Publicar Catálogo
+    needs: scrape
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Descargar todos los parciales
+        uses: actions/download-artifact@v4
+        with:
+          pattern: worker_data_*
+          merge-multiple: true
+
+      - name: Consolidar en catalog.db
+        run: python cloud_merge.py
+
+      - name: Publicar Release con catalog.db.zip
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: latest
+          name: "Catálogo Actualizado Dropi Colombia"
+          files: catalog.db.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

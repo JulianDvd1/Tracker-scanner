@@ -1,0 +1,9 @@
+# Ignorar credenciales y base de datos local
+.env
+catalog.db
+catalog.db.zip
+worker_data_*.db
+tracker_checkpoint.json
+__pycache__/
+*.pyc
+.system_generated/
