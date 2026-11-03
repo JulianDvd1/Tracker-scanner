@@ -6,6 +6,9 @@ on:
     - cron: '0 */2 * * *'
   workflow_dispatch: # Permite ejecutarlo manualmente con 1 clic cuando tú quieras
 
+permissions:
+  contents: write
+
 jobs:
   scrape:
     name: Worker ${{ matrix.worker_id }} / 10
