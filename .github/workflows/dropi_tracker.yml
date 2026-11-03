@@ -33,6 +33,7 @@ jobs:
       - name: Ejecutar Worker #${{ matrix.worker_id }}
         env:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN }}
+          PYTHONUNBUFFERED: "1"
         run: |
           python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 4 --total-pages 1500
 

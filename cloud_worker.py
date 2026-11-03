@@ -20,7 +20,7 @@ PAGE_SIZE = 40  # Tamaño nativo por página en Dropi
 USER_AGENTS = [
     "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    "WordPress/6.4; Dropify"
 ]
 
 def classify_tier(p: dict) -> str:
@@ -72,35 +72,53 @@ def init_worker_db(db_path: str):
 
 async def fetch_page(session: aiohttp.ClientSession, page: int, semaphore: asyncio.Semaphore) -> List[Dict[str, Any]]:
     headers = {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json;charset=UTF-8",
         "dropi-integration-key": DROPI_TOKEN,
         "User-Agent": random.choice(USER_AGENTS)
     }
-    payload = {"pageSize": PAGE_SIZE, "page": page}
+    
+    # Parámetros exactos de la API de Dropi con startData y no_count para máxima velocidad
+    start_data = (page - 1) * PAGE_SIZE
+    payload = {
+        "startData": start_data,
+        "pageSize": PAGE_SIZE,
+        "order_type": "desc",
+        "order_by": "id",
+        "keywords": "",
+        "active": True,
+        "no_count": True,
+        "integration": True
+    }
 
     async with semaphore:
         for attempt in range(1, 4):
             try:
-                # Latencia corta segura entre llamadas
-                await asyncio.sleep(random.uniform(0.15, 0.35))
-                async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=18)) as resp:
+                await asyncio.sleep(random.uniform(0.1, 0.25))
+                async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as resp:
                     if resp.status == 200:
                         data = await resp.json()
-                        return data.get("objects", [])
+                        if data.get("isSuccess"):
+                            return data.get("objects", [])
+                        else:
+                            # Error interno de Dropi en esta página
+                            return []
                     elif resp.status == 429:
-                        print(f" [Rate-Limit 429] Worker esperando {attempt * 8}s...")
-                        await asyncio.sleep(attempt * 8)
+                        print(f" [429 Rate-Limit] Esperando {attempt * 6}s...", flush=True)
+                        await asyncio.sleep(attempt * 6)
+                    elif resp.status == 401:
+                        print(f" [401 Error] Token inválido o IP restringida en página {page}", flush=True)
+                        return []
                     else:
                         await asyncio.sleep(1)
             except Exception as e:
                 if attempt == 3:
-                    print(f" Error en página {page}: {e}")
-                await asyncio.sleep(1.5)
+                    print(f" Error en pág {page}: {e}", flush=True)
+                await asyncio.sleep(1)
     return []
 
 async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 1500):
     if not DROPI_TOKEN:
-        print(" ERROR FATAL: DROPI_TOKEN no configurado en variables de entorno.")
+        print(" ERROR FATAL: DROPI_TOKEN no configurado en variables de entorno.", flush=True)
         sys.exit(1)
 
     pages_per_worker = total_pages // total_workers
@@ -114,9 +132,11 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
     conn = sqlite3.connect(db_filename)
     cursor = conn.cursor()
 
-    print(f"=== WORKER #{worker_id} / {total_workers} INICIADO ===")
-    print(f" - Rango asignado: Páginas {start_page} a {end_page} (~{(end_page - start_page + 1) * PAGE_SIZE:,} productos)")
-    print(f" - Modo: Paralelo asíncrono (4 canales simultáneos)\n")
+    print(f"\n=======================================================", flush=True)
+    print(f" WORKER #{worker_id} / {total_workers} INICIADO CON ÉXITO", flush=True)
+    print(f" - Rango: Páginas {start_page} a {end_page} (~{(end_page - start_page + 1) * PAGE_SIZE:,} productos)", flush=True)
+    print(f" - Modo: Paginación nativa Dropi startData + no_count ultrarrápido", flush=True)
+    print(f"=======================================================\n", flush=True)
 
     saved_count = 0
     start_time = time.time()
@@ -124,7 +144,6 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
 
     conn_tcp = aiohttp.TCPConnector(limit=6, ssl=False)
     async with aiohttp.ClientSession(connector=conn_tcp) as session:
-        # Descarga en bloques de 25 páginas en paralelo
         batch_size = 25
         for batch_start in range(start_page, end_page + 1, batch_size):
             batch_end = min(batch_start + batch_size, end_page + 1)
@@ -181,11 +200,12 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
                     saved_count += 1
 
             conn.commit()
-            print(f" Worker #{worker_id}: Páginas hasta {batch_end-1}/{end_page} listas | Guardados: {saved_count:,} | Tiempo: {time.time() - start_time:.1f}s")
+            elapsed = time.time() - start_time
+            print(f" -> Lote páginas {batch_start}-{batch_end-1} completado | Guardados: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
 
     conn.commit()
     conn.close()
-    print(f"\n WORKER #{worker_id} FINALIZADO EN {time.time() - start_time:.1f}s. Total guardados: {saved_count:,}")
+    print(f"\n WORKER #{worker_id} FINALIZADO EN {time.time() - start_time:.1f}s. Total guardados: {saved_count:,}", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
