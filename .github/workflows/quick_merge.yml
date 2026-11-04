@@ -1,0 +1,44 @@
+name: Quick Merge Run 11
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/quick_merge.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Descargar artefactos de la corrida 11
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 41756599819
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: downloaded_artifacts
+
+      - name: Ejecutar fusión inteligente
+        run: |
+          python cloud_merge.py
+
+      - name: Actualizar Release con Catálogo Consolidado
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v1.0-data"
+          name: "Catálogo Dropi Colombia Automatizado"
+          body: "Base de datos SQLite consolidada con los ganadores de la corrida 11."
+          files: catalog.db.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
