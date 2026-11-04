@@ -94,8 +94,8 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: Li
         "userVerified": True
     }
 
-    # Ritmo continuo entre peticiones (2.5s)
-    await asyncio.sleep(2.5 + random.uniform(0.1, 0.3))
+    # Ritmo continuo entre peticiones (3.0s exactos)
+    await asyncio.sleep(3.0)
 
     max_attempts = max(3, len(tokens) + 1)
     for attempt in range(1, max_attempts + 1):
@@ -120,9 +120,9 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: Li
                         await asyncio.sleep(1.0)
                         continue
                     
-                    # 2. Pausa directa de 61.5s (la ventana exacta de reseteo de Dropi)
-                    print(f" [429 Rate-Limit] Pausa directa de 61.5s (reseteo exacto de ventana Dropi)...", flush=True)
-                    await asyncio.sleep(61.5)
+                    # 2. Pausa directa de 62.0s (la ventana exacta de reseteo de Dropi)
+                    print(f" [429 Rate-Limit] Pausa directa de 62.0s (reseteo de ventana Dropi)...", flush=True)
+                    await asyncio.sleep(62.0)
                 else:
                     await asyncio.sleep(1.5)
         except Exception as e:
@@ -158,7 +158,7 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
     print(f" - Destino BD: {db_filename}", flush=True)
     print(f" - Tokens disponibles para rotación: {len(tokens)}", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
-    print(f" - Ritmo seguro: 1 petición cada 2.5s | Pausa directa 429: 61.5s exactos", flush=True)
+    print(f" - Ritmo calibrado: 1 petición cada 3.0s | Pausa directa 429: 62.0s exactos", flush=True)
     print(f"=======================================================\n", flush=True)
 
     saved_count = 0
