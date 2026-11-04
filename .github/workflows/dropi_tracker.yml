@@ -2,7 +2,12 @@ name: Dropi Master Scanner (32k Productos)
 
 on:
   schedule:
-    - cron: '0 */3 * * *'
+    # 4 veces al día (Hora Colombia UTC-5):
+    # 09:00 UTC = 04:00 AM Colombia
+    # 15:00 UTC = 10:00 AM Colombia
+    # 19:00 UTC = 02:00 PM Colombia
+    # 23:00 UTC = 06:00 PM Colombia
+    - cron: '0 9,15,19,23 * * *'
   workflow_dispatch:
 
 permissions:
