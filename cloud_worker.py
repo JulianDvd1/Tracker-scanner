@@ -7,30 +7,15 @@ import aiohttp
 import sqlite3
 import random
 import argparse
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
-# Limpiamos rigurosamente cualquier espacio, comilla o salto de línea invisible
 DROPI_TOKEN = os.getenv("DROPI_TOKEN", "").strip().strip('"').strip("'")
 
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
 MIN_STOCK = 15
 MIN_MARGIN = 18000
 PAGE_SIZE = 40
-
-USER_AGENT = "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)"
-
-def classify_tier(p: dict) -> str:
-    plan = str(p.get("supplier_plan") or "").upper()
-    is_prem = bool(p.get("is_premium"))
-    is_veri = bool(p.get("is_verified"))
-    if "EXCLUSIVO" in plan or (is_prem and "EXCLUSIV" in str(p.get("supplier_name", "")).upper()):
-        return "PREMIUM EXCLUSIVO"
-    if is_prem or "PREMIUM" in plan:
-        return "PREMIUM"
-    if is_veri:
-        return "VERIFICADO"
-    return "ESTANDAR"
 
 def init_worker_db(db_path: str):
     conn = sqlite3.connect(db_path)
@@ -67,15 +52,12 @@ def init_worker_db(db_path: str):
     conn.commit()
     conn.close()
 
-async def fetch_page(session: aiohttp.ClientSession, page: int, log_diagnostic: bool = False) -> List[Dict[str, Any]]:
+async def fetch_page(session: aiohttp.ClientSession, start_data: int) -> List[Dict[str, Any]]:
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
-        "Accept": "application/json, text/plain, */*",
         "dropi-integration-key": DROPI_TOKEN,
-        "User-Agent": USER_AGENT
+        "User-Agent": "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)"
     }
-    
-    start_data = (page - 1) * PAGE_SIZE
     payload = {
         "startData": start_data,
         "pageSize": PAGE_SIZE,
@@ -87,77 +69,80 @@ async def fetch_page(session: aiohttp.ClientSession, page: int, log_diagnostic: 
         "integration": True
     }
 
-    await asyncio.sleep(0.75 + random.uniform(0.05, 0.15))
+    # Delay constante de 1.2s para respetar el límite de 1 req/s del Token de Dropi
+    await asyncio.sleep(1.2)
 
     for attempt in range(1, 4):
         try:
             async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
-                text = await resp.text()
-
-                if log_diagnostic:
-                    print(f" [DIAGNÓSTICO INICIAL] HTTP Status: {resp.status} | Respuesta: {text[:140]}", flush=True)
-
                 if resp.status == 200:
-                    try:
-                        data = json.loads(text)
-                        if data.get("isSuccess"):
-                            return data.get("objects", [])
-                    except Exception:
-                        pass
+                    data = await resp.json()
+                    if data.get("isSuccess"):
+                        return data.get("objects", [])
                     return []
                 elif resp.status == 429:
-                    wait_time = attempt * 12
-                    print(f" [429 Rate-Limit] Pausa de {wait_time}s...", flush=True)
+                    wait_time = attempt * 8
+                    print(f" [Dropi 429] Esperando {wait_time}s para vaciar cuota de token...", flush=True)
                     await asyncio.sleep(wait_time)
-                elif resp.status == 401:
-                    print(f" [401 Error pág {page}] Detalle: {text[:100]}", flush=True)
-                    await asyncio.sleep(8)
                 else:
                     await asyncio.sleep(2)
         except Exception as e:
             if attempt == 3:
-                print(f" Error en pág {page}: {e}", flush=True)
+                print(f" Error conexión en offset {start_data}: {e}", flush=True)
             await asyncio.sleep(2)
     return []
 
-async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 800):
+async def run_scanner(max_pages: int = 250):
+    """
+    Rastreador maestro de catálogo activo:
+    - 250 páginas = 10.000 productos con rotación reciente
+    - 1 solo proceso limpio sin choques de 429
+    - Claves exactas de Dropi: warehouse_product y user.category_user
+    """
     if not DROPI_TOKEN:
         print(" ERROR: DROPI_TOKEN no configurado en GitHub Secrets.", flush=True)
         sys.exit(1)
 
-    print(f" Longitud del token detectado: {len(DROPI_TOKEN)} caracteres (Comienza con: {DROPI_TOKEN[:10]}...)", flush=True)
-
-    pages_per_worker = total_pages // total_workers
-    start_page = ((worker_id - 1) * pages_per_worker) + 1
-    end_page = start_page + pages_per_worker - 1
-    if worker_id == total_workers:
-        end_page = total_pages
-
-    db_filename = f"worker_data_{worker_id}.db"
+    db_filename = "worker_data_1.db"
     init_worker_db(db_filename)
     conn = sqlite3.connect(db_filename)
     cursor = conn.cursor()
 
-    print(f"\n=== WORKER #{worker_id} / {total_workers} INICIADO ===", flush=True)
-    print(f" - Rango: Páginas {start_page} a {end_page} (~{(end_page - start_page + 1) * PAGE_SIZE:,} productos)", flush=True)
-    print(f" - Ritmo seguro: 1 petición/segundo", flush=True)
+    print(f"\n=======================================================", flush=True)
+    print(f" DROPI CLOUD SCANNER MAESTRO INICIADO", flush=True)
+    print(f" - Páginas objetivo: {max_pages} (~{max_pages * PAGE_SIZE:,} productos)", flush=True)
+    print(f" - Ritmo: 1 petición cada 1.2s (Cero choques 429)", flush=True)
+    print(f"=======================================================\n", flush=True)
 
     saved_count = 0
     start_time = time.time()
 
-    conn_tcp = aiohttp.TCPConnector(limit=3, ssl=False)
+    conn_tcp = aiohttp.TCPConnector(limit=2, ssl=False)
     async with aiohttp.ClientSession(connector=conn_tcp) as session:
-        for idx, page in enumerate(range(start_page, end_page + 1)):
-            # En la primera petición de cada worker imprimimos el diagnóstico exacto
-            is_first = (idx == 0)
-            objects = await fetch_page(session, page, log_diagnostic=is_first)
-            now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
+        for page in range(1, max_pages + 1):
+            start_data = (page - 1) * PAGE_SIZE
+            objects = await fetch_page(session, start_data)
 
+            if not objects:
+                # Si Dropi no devuelve objetos tras varias páginas, llegamos al final del catálogo activo
+                if page > 10:
+                    print(f" Final del catálogo activo alcanzado en página {page}.", flush=True)
+                    break
+                continue
+
+            now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
             for item in objects:
-                tier = classify_tier(item)
+                # 1. Tier de proveedor real en Dropi
+                user_data = item.get("user") or {}
+                cat_user = user_data.get("category_user") or {}
+                tier = (cat_user.get("name") or item.get("supplier_plan") or "").strip().upper()
+                if not any(t in tier for t in ["PREMIUM", "VERIFICADO"]):
+                    tier = "ESTANDAR"
+
                 if tier not in ALLOWED_SUPPLIER_TIERS:
                     continue
 
+                # 2. Precios y margen
                 sale_price = float(item.get("sale_price") or 0)
                 sug_price = float(item.get("suggested_price") or sale_price)
                 margin = sug_price - sale_price
@@ -165,17 +150,27 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
                 if margin < MIN_MARGIN:
                     continue
 
-                warehouses = item.get("product_warehouses", [])
+                # 3. Stock real en bodegas (clave exacta de Dropi: warehouse_product)
+                warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
                 total_stock = sum(int(w.get("stock") or 0) for w in warehouses)
                 if total_stock < MIN_STOCK:
                     continue
 
+                # 4. Imagen válida
+                gallery = item.get("gallery") or []
+                img = ""
+                if gallery:
+                    img = gallery[0].get("urlS3") or gallery[0].get("url") or (gallery[0] if isinstance(gallery[0], str) else "")
+
                 pid = item.get("id")
                 pname = (item.get("name") or "Sin nombre").strip()
-                cat = item.get("category") or "General"
-                supp_id = item.get("user_id")
-                supp_name = item.get("supplier_name") or "Proveedor"
-                img = item.get("gallery", [""])[0] if item.get("gallery") else ""
+                categories = item.get("categories") or []
+                cat = categories[0].get("name") if categories else (item.get("category") or "General")
+
+                supp_id = user_data.get("id") or item.get("user_id")
+                supp_name = user_data.get("name") or item.get("supplier_name") or "Proveedor"
+                store_name = user_data.get("store_name") or supp_name
+                plan_name = (user_data.get("plan") or {}).get("name") or tier
 
                 cursor.execute("""
                     INSERT OR REPLACE INTO products (
@@ -186,8 +181,8 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
                 """, (
                     pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
                     margin, img, item.get("created_at") or now_iso, now_iso,
-                    item.get("store_name"), 1 if item.get("is_verified") else 0,
-                    1 if item.get("is_premium") else 0, item.get("supplier_plan"), tier
+                    store_name, 1 if item.get("is_verified") else 0,
+                    1 if item.get("is_premium") else 0, plan_name, tier
                 ))
 
                 for wh in warehouses:
@@ -200,20 +195,19 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
 
                 saved_count += 1
 
-            if page % 15 == 0 or page == end_page:
+            if page % 10 == 0 or page == max_pages:
                 conn.commit()
                 elapsed = time.time() - start_time
-                print(f" -> Progreso: Página {page}/{end_page} auditada | Guardados: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
+                print(f" -> Página {page}/{max_pages} auditada | Ganadores guardados: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
 
     conn.commit()
     conn.close()
-    print(f"\n WORKER #{worker_id} FINALIZADO EN {time.time() - start_time:.1f}s! Total guardados: {saved_count:,}", flush=True)
+    total_elapsed = time.time() - start_time
+    print(f"\n BARRIDO FINALIZADO EN {total_elapsed:.1f}s! Total ganadores guardados: {saved_count:,}", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--worker-id", type=int, required=True, help="ID de este worker (1 a 4)")
-    parser.add_argument("--total-workers", type=int, default=4, help="Total de workers paralelos")
-    parser.add_argument("--total-pages", type=int, default=800, help="Total de páginas del catálogo")
-    args = parser.parse_args()
+    parser.add_argument("--pages", type=int, default=250, help="Páginas a auditar")
+    args, _ = parser.parse_known_args()
 
-    asyncio.run(run_worker(args.worker_id, args.total_workers, args.total_pages))
+    asyncio.run(run_scanner(max_pages=args.pages))

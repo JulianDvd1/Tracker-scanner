@@ -2,22 +2,16 @@ name: Dropi Matrix Scanner
 
 on:
   schedule:
-    # Corre cada 2 horas automáticamente las 24 horas del día
     - cron: '0 */2 * * *'
-  workflow_dispatch: # Permite ejecutarlo manualmente con 1 clic cuando tú quieras
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  scrape:
-    name: Worker ${{ matrix.worker_id }} / 4
+  scan:
+    name: Dropi Cloud Scanner
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        worker_id: [1, 2, 3, 4]
-    
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -30,43 +24,17 @@ jobs:
       - name: Instalar dependencias
         run: pip install aiohttp
 
-      - name: Ejecutar Worker #${{ matrix.worker_id }}
+      - name: Ejecutar Auditoría Dropi
         env:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 4 --total-pages 800
+          python cloud_worker.py --pages 250
 
-      - name: Subir artefacto parcial
-        uses: actions/upload-artifact@v4
-        with:
-          name: worker_data_${{ matrix.worker_id }}
-          path: worker_data_${{ matrix.worker_id }}.db
-          retention-days: 1
-
-  merge:
-    name: Fusionar y Publicar Catálogo
-    needs: scrape
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Instalar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Descargar todos los parciales
-        uses: actions/download-artifact@v4
-        with:
-          pattern: worker_data_*
-          merge-multiple: true
-
-      - name: Consolidar en catalog.db
+      - name: Consolidar y Comprimir Base de Datos
         run: python cloud_merge.py
 
-      - name: Publicar Release con catalog.db.zip
+      - name: Publicar Catálogo en Release
         uses: softprops/action-gh-release@v2
         if: success()
         with:
