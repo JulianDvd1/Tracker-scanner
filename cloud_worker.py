@@ -140,7 +140,7 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
         print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
     print(f" - Destino BD: {db_filename}", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
-    print(f" - Ritmo seguro: 1 petición cada 2.1s (Cero choques de concurrencia)", flush=True)
+    print(f" - Ritmo continuo calibrado: 1 petición cada 3.6s (Cero bloqueos de ráfaga)", flush=True)
     print(f"=======================================================\n", flush=True)
 
     saved_count = 0
