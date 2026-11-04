@@ -159,7 +159,14 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
             for item in objects:
                 user_data = item.get("user") or {}
                 cat_user = user_data.get("category_user") or {}
-                tier_raw = (cat_user.get("name") or user_data.get("plan") or item.get("supplier_plan") or "").strip().upper()
+                plan_val = user_data.get("plan")
+                plan_str = plan_val.get("name", "") if isinstance(plan_val, dict) else str(plan_val or "")
+                cat_name = cat_user.get("name", "") if isinstance(cat_user, dict) else str(cat_user or "")
+                supp_plan = item.get("supplier_plan") or ""
+                if isinstance(supp_plan, dict):
+                    supp_plan = supp_plan.get("name", "")
+
+                tier_raw = str(cat_name or plan_str or supp_plan or "").strip().upper()
                 is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
                 is_prem = bool(item.get("is_premium") or user_data.get("is_premium"))
 
@@ -197,7 +204,7 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
                 supp_id = item.get("user_id") or user_data.get("id") or 0
                 store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
                 supp_name = store_name if store_name else (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
-                plan_name = str(cat_user.get("name") or user_data.get("plan") or "Plan Estándar")
+                plan_name = tier
 
                 cursor.execute("""
                     INSERT OR REPLACE INTO products (
