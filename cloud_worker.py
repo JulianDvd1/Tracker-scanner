@@ -84,10 +84,10 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "integration": True
     }
 
-    # Pausa de seguridad calibrada para evitar bloqueos 429
-    await asyncio.sleep(2.0)
+    # Pausa calibrada para 2 cuentas (2 workers por cuenta = ~24 req/min c/u = <50 req/min por cuenta)
+    await asyncio.sleep(2.3 + random.uniform(0.1, 0.4))
 
-    for attempt in range(1, 4):
+    for attempt in range(1, 6):
         try:
             async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
                 if resp.status == 200:
@@ -96,13 +96,13 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
                         return data.get("objects", [])
                     return []
                 elif resp.status == 429:
-                    wait_time = attempt * 8
-                    print(f" [429 Rate-Limit] Pausa {wait_time}s...", flush=True)
+                    wait_time = attempt * 10 + random.uniform(1, 3)
+                    print(f" [429 Rate-Limit] Pausa preventiva {wait_time:.1f}s...", flush=True)
                     await asyncio.sleep(wait_time)
                 else:
                     await asyncio.sleep(1.5)
         except Exception as e:
-            if attempt == 3:
+            if attempt == 5:
                 print(f" Error en offset {start_data}: {e}", flush=True)
             await asyncio.sleep(2)
     return []
