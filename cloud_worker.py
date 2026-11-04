@@ -124,7 +124,7 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
             await asyncio.sleep(2)
     return []
 
-async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 25):
+async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 1250):
     token = os.getenv("DROPI_TOKEN_1") or os.getenv("DROPI_TOKEN") or ""
     token = token.strip().strip('"').strip("'")
     if not token:
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--worker-id", type=int, default=1, help="ID del worker (default 1)")
     parser.add_argument("--total-workers", type=int, default=1, help="Total workers (default 1)")
-    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=800, help="Total páginas (800 = ~32.000 productos)")
+    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=1250, help="Total páginas (1250 = ~50.000 productos)")
     args = parser.parse_args()
 
     asyncio.run(run_worker(args.worker_id, args.total_workers, args.total_pages))

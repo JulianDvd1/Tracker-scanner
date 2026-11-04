@@ -11,16 +11,16 @@ on:
   workflow_dispatch:
     inputs:
       pages:
-        description: 'Cantidad de páginas a escanear (25 = ~1.000 prods de prueba | 1750 = ~70.000 prods)'
+        description: 'Cantidad de páginas a escanear (1250 = ~50.000 productos)'
         required: true
-        default: '25'
+        default: '1250'
 
 permissions:
   contents: write
 
 jobs:
   scrape_and_release:
-    name: Escáner Dropi Colombia
+    name: Escáner Dropi Colombia (50k Productos)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -34,12 +34,12 @@ jobs:
       - name: Instalar dependencias
         run: pip install aiohttp
 
-      - name: Ejecutar Escáner Continuo
+      - name: Ejecutar Escáner Continuo (50.000 Productos)
         env:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --pages ${{ github.event.inputs.pages || '25' }}
+          python cloud_worker.py --pages ${{ github.event.inputs.pages || '1250' }}
 
       - name: Comprimir Catálogo
         run: |
@@ -51,7 +51,7 @@ jobs:
         with:
           tag_name: "v1.0-data"
           name: "Catálogo Dropi Colombia Automatizado"
-          body: "Base de datos consolidada con 32.000 productos auditados de Dropi Colombia."
+          body: "Base de datos consolidada con 50.000 productos auditados de Dropi Colombia."
           files: catalog.db.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
