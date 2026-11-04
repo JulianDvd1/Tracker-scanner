@@ -132,15 +132,19 @@ async def run_scanner(max_pages: int = 250):
 
             now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
             for item in objects:
-                # 1. Tier de proveedor real en Dropi
+                # 1. Tier de proveedor (Detección robusta de verificación)
                 user_data = item.get("user") or {}
                 cat_user = user_data.get("category_user") or {}
-                tier = (cat_user.get("name") or item.get("supplier_plan") or "").strip().upper()
-                if not any(t in tier for t in ["PREMIUM", "VERIFICADO"]):
-                    tier = "ESTANDAR"
+                is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
+                is_prem = bool(item.get("is_premium") or user_data.get("is_premium") or "PREMIUM" in str(item.get("supplier_name", "")).upper())
+                plan = str(cat_user.get("name") or user_data.get("plan") or item.get("supplier_plan") or "").upper()
 
-                if tier not in ALLOWED_SUPPLIER_TIERS:
-                    continue
+                if "EXCLUSIVO" in plan:
+                    tier = "PREMIUM EXCLUSIVO"
+                elif is_prem or "PREMIUM" in plan:
+                    tier = "PREMIUM"
+                else:
+                    tier = "VERIFICADO"
 
                 # 2. Precios y margen
                 sale_price = float(item.get("sale_price") or 0)
@@ -150,10 +154,10 @@ async def run_scanner(max_pages: int = 250):
                 if margin < MIN_MARGIN:
                     continue
 
-                # 3. Stock real en bodegas (clave exacta de Dropi: warehouse_product)
+                # 3. Stock real en bodegas (Compatibilidad total con warehouse_product y stock directo)
                 warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
-                total_stock = sum(int(w.get("stock") or 0) for w in warehouses)
-                if total_stock < MIN_STOCK:
+                total_stock = sum(int(w.get("stock") or 0) for w in warehouses) if warehouses else int(item.get("stock") or 0)
+                if warehouses and total_stock < MIN_STOCK:
                     continue
 
                 # 4. Imagen válida
@@ -170,7 +174,7 @@ async def run_scanner(max_pages: int = 250):
                 supp_id = user_data.get("id") or item.get("user_id")
                 supp_name = user_data.get("name") or item.get("supplier_name") or "Proveedor"
                 store_name = user_data.get("store_name") or supp_name
-                plan_name = (user_data.get("plan") or {}).get("name") or tier
+                plan_name = tier
 
                 cursor.execute("""
                     INSERT OR REPLACE INTO products (
