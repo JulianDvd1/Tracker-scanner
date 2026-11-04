@@ -88,11 +88,12 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "keywords": "",
         "active": True,
         "no_count": True,
-        "integration": True
+        "integration": True,
+        "userVerified": True
     }
 
-    # Ritmo continuo seguro para 1 solo worker: 2.05s (~29 req/min, dentro del límite de Dropi)
-    await asyncio.sleep(2.05 + random.uniform(0.05, 0.15))
+    # Ritmo continuo calibrado para cero pausas por minuto
+    await asyncio.sleep(3.6 + random.uniform(0.1, 0.3))
 
     for attempt in range(1, 6):
         try:
@@ -158,16 +159,19 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
             for item in objects:
                 user_data = item.get("user") or {}
                 cat_user = user_data.get("category_user") or {}
+                tier_raw = (cat_user.get("name") or user_data.get("plan") or item.get("supplier_plan") or "").strip().upper()
                 is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
-                is_prem = bool(item.get("is_premium") or user_data.get("is_premium") or "PREMIUM" in str(item.get("supplier_name", "")).upper())
-                plan = str(cat_user.get("name") or user_data.get("plan") or item.get("supplier_plan") or "").upper()
+                is_prem = bool(item.get("is_premium") or user_data.get("is_premium"))
 
-                if "EXCLUSIVO" in plan:
+                if "EXCLUSIVO" in tier_raw:
                     tier = "PREMIUM EXCLUSIVO"
-                elif is_prem or "PREMIUM" in plan:
+                elif is_prem or "PREMIUM" in tier_raw:
                     tier = "PREMIUM"
-                else:
+                elif is_veri or "VERIFICADO" in tier_raw:
                     tier = "VERIFICADO"
+                else:
+                    # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO DIRECTAMENTE
+                    continue
 
                 sale_price = float(item.get("sale_price") or 0)
                 sug_price = float(item.get("suggested_price") or sale_price)
