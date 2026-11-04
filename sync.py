@@ -4,7 +4,7 @@ import zipfile
 import sqlite3
 import time
 
-DEFAULT_RELEASE_URL = "https://github.com/JulianDvd1/Tracker-scanner/releases/download/latest/catalog.db.zip"
+DEFAULT_RELEASE_URL = "https://github.com/JulianDvd1/Tracker-scanner/releases/download/v1.0-data/catalog.db.zip"
 DB_PATH = os.path.join(os.path.dirname(__file__), "catalog.db")
 ZIP_PATH = os.path.join(os.path.dirname(__file__), "catalog.db.zip")
 TEMP_DIR = os.path.join(os.path.dirname(__file__), "temp_sync")

@@ -58,8 +58,9 @@ def merge_all_workers():
     conn_master = sqlite3.connect(MASTER_DB)
     c_master = conn_master.cursor()
 
-    worker_files = sorted(glob.glob("worker_data_*.db"))
-    print(f"\n Fusionando {len(worker_files)} bases de datos parciales...")
+    worker_files = sorted(glob.glob("downloaded_artifacts/**/worker_data_*.db", recursive=True) + glob.glob("worker_data_*.db"))
+    worker_files = list(dict.fromkeys(worker_files))
+    print(f"\n Fusionando {len(worker_files)} bases de datos parciales encontradas: {worker_files}...")
 
     total_prods_merged = 0
     total_sales_detected = 0
