@@ -1,4 +1,4 @@
-name: Dropi Matrix Scanner
+name: Dropi Matrix Scanner 4X
 
 on:
   schedule:
@@ -9,9 +9,14 @@ permissions:
   contents: write
 
 jobs:
-  scan:
-    name: Dropi Cloud Scanner
+  scrape:
+    name: Worker ${{ matrix.worker_id }} / 4
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        worker_id: [1, 2, 3, 4]
+    
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -24,17 +29,46 @@ jobs:
       - name: Instalar dependencias
         run: pip install aiohttp
 
-      - name: Ejecutar Auditoría Dropi
+      - name: Ejecutar Turbo Worker #${{ matrix.worker_id }}
         env:
-          DROPI_TOKEN: ${{ secrets.DROPI_TOKEN }}
+          DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
+          DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
+          DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
+          DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --pages 250
+          python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 4 --total-pages 800
 
-      - name: Consolidar y Comprimir Base de Datos
+      - name: Subir artefacto parcial
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker_data_${{ matrix.worker_id }}
+          path: worker_data_${{ matrix.worker_id }}.db
+          retention-days: 1
+
+  merge:
+    name: Fusionar y Publicar Catálogo
+    needs: scrape
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Descargar todos los parciales
+        uses: actions/download-artifact@v4
+        with:
+          pattern: worker_data_*
+          merge-multiple: true
+
+      - name: Consolidar en catalog.db
         run: python cloud_merge.py
 
-      - name: Publicar Catálogo en Release
+      - name: Publicar Release con catalog.db.zip
         uses: softprops/action-gh-release@v2
         if: success()
         with:

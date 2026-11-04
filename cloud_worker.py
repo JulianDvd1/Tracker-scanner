@@ -10,12 +10,27 @@ import argparse
 from typing import List, Dict, Any
 
 DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
-DROPI_TOKEN = os.getenv("DROPI_TOKEN", "").strip().strip('"').strip("'")
 
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
-MIN_STOCK = 5        # Reducido para no filtrar productos con stock moderado
-MIN_MARGIN = 10000   # Reducido a $10.000 COP para incluir relojes Curren, tenis y accesorios
+MIN_STOCK = 5        # Para incluir productos con stock moderado
+MIN_MARGIN = 10000   # Para incluir relojes Curren, Casrray, calzado y accesorios
 PAGE_SIZE = 40
+
+USER_AGENTS = [
+    "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "WordPress/6.4; Dropify",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+]
+
+def get_token_for_worker(worker_id: int) -> str:
+    # Busca el token específico del canal o fallback general
+    token = os.getenv(f"DROPI_TOKEN_{worker_id}")
+    if not token and worker_id == 1:
+        token = os.getenv("DROPI_TOKEN")
+    if not token:
+        token = os.getenv("DROPI_TOKEN")
+    return (token or "").strip().strip('"').strip("'")
 
 def init_worker_db(db_path: str):
     conn = sqlite3.connect(db_path)
@@ -52,11 +67,11 @@ def init_worker_db(db_path: str):
     conn.commit()
     conn.close()
 
-async def fetch_page(session: aiohttp.ClientSession, start_data: int) -> List[Dict[str, Any]]:
+async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str) -> List[Dict[str, Any]]:
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
-        "dropi-integration-key": DROPI_TOKEN,
-        "User-Agent": "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)"
+        "dropi-integration-key": token,
+        "User-Agent": random.choice(USER_AGENTS)
     }
     payload = {
         "startData": start_data,
@@ -69,8 +84,8 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int) -> List[Di
         "integration": True
     }
 
-    # Delay constante de 1.2s para respetar el límite de 1 req/s del Token de Dropi
-    await asyncio.sleep(1.2)
+    # Pausa ligera de seguridad
+    await asyncio.sleep(0.7)
 
     for attempt in range(1, 4):
         try:
@@ -82,53 +97,54 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int) -> List[Di
                     return []
                 elif resp.status == 429:
                     wait_time = attempt * 8
-                    print(f" [Dropi 429] Esperando {wait_time}s para vaciar cuota de token...", flush=True)
+                    print(f" [429 Rate-Limit] Pausa {wait_time}s...", flush=True)
                     await asyncio.sleep(wait_time)
                 else:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1.5)
         except Exception as e:
             if attempt == 3:
-                print(f" Error conexión en offset {start_data}: {e}", flush=True)
+                print(f" Error en offset {start_data}: {e}", flush=True)
             await asyncio.sleep(2)
     return []
 
-async def run_scanner(max_pages: int = 250):
-    """
-    Rastreador maestro de catálogo activo:
-    - 250 páginas = 10.000 productos con rotación reciente
-    - 1 solo proceso limpio sin choques de 429
-    - Claves exactas de Dropi: warehouse_product y user.category_user
-    """
-    if not DROPI_TOKEN:
-        print(" ERROR: DROPI_TOKEN no configurado en GitHub Secrets.", flush=True)
+async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 800):
+    token = get_token_for_worker(worker_id)
+    if not token:
+        print(f" ERROR: Token para Worker #{worker_id} no configurado en Secrets.", flush=True)
         sys.exit(1)
 
-    db_filename = "worker_data_1.db"
+    pages_per_worker = total_pages // total_workers
+    start_page = ((worker_id - 1) * pages_per_worker) + 1
+    end_page = start_page + pages_per_worker - 1
+    if worker_id == total_workers:
+        end_page = total_pages
+
+    db_filename = f"worker_data_{worker_id}.db"
     init_worker_db(db_filename)
     conn = sqlite3.connect(db_filename)
     cursor = conn.cursor()
 
+    total_prods_assigned = (end_page - start_page + 1) * PAGE_SIZE
     print(f"\n=======================================================", flush=True)
-    print(f" DROPI CLOUD SCANNER MAESTRO INICIADO", flush=True)
-    print(f" - Páginas objetivo: {max_pages} (~{max_pages * PAGE_SIZE:,} productos)", flush=True)
-    print(f" - Ritmo: 1 petición cada 1.2s (Cero choques 429)", flush=True)
+    print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
+    print(f" - Canal asignado: DROPI_TOKEN_{worker_id} (Canal Independiente)", flush=True)
+    print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
     print(f"=======================================================\n", flush=True)
 
     saved_count = 0
     start_time = time.time()
 
-    conn_tcp = aiohttp.TCPConnector(limit=2, ssl=False)
+    conn_tcp = aiohttp.TCPConnector(limit=3, ssl=False)
     async with aiohttp.ClientSession(connector=conn_tcp) as session:
-        for page in range(1, max_pages + 1):
+        for page in range(start_page, end_page + 1):
             start_data = (page - 1) * PAGE_SIZE
-            objects = await fetch_page(session, start_data)
+            objects = await fetch_page(session, start_data, token)
 
             if not objects:
                 continue
 
             now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
             for item in objects:
-                # 1. Tier de proveedor (Detección robusta de verificación)
                 user_data = item.get("user") or {}
                 cat_user = user_data.get("category_user") or {}
                 is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
@@ -142,7 +158,6 @@ async def run_scanner(max_pages: int = 250):
                 else:
                     tier = "VERIFICADO"
 
-                # 2. Precios y margen
                 sale_price = float(item.get("sale_price") or 0)
                 sug_price = float(item.get("suggested_price") or sale_price)
                 margin = sug_price - sale_price
@@ -150,13 +165,11 @@ async def run_scanner(max_pages: int = 250):
                 if margin < MIN_MARGIN:
                     continue
 
-                # 3. Stock real en bodegas (Compatibilidad total con warehouse_product y stock directo)
                 warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
                 total_stock = sum(int(w.get("stock") or 0) for w in warehouses) if warehouses else int(item.get("stock") or 0)
                 if warehouses and total_stock < MIN_STOCK:
                     continue
 
-                # 4. Imagen válida
                 gallery = item.get("gallery") or []
                 img = ""
                 if gallery:
@@ -195,19 +208,20 @@ async def run_scanner(max_pages: int = 250):
 
                 saved_count += 1
 
-            if page % 10 == 0 or page == max_pages:
+            if page % 10 == 0 or page == end_page:
                 conn.commit()
                 elapsed = time.time() - start_time
-                print(f" -> Página {page}/{max_pages} auditada | Ganadores guardados: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
+                print(f" Worker #{worker_id}: Pág {page}/{end_page} lista | Ganadores: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
 
     conn.commit()
     conn.close()
-    total_elapsed = time.time() - start_time
-    print(f"\n BARRIDO FINALIZADO EN {total_elapsed:.1f}s! Total ganadores guardados: {saved_count:,}", flush=True)
+    print(f"\n WORKER #{worker_id} FINALIZADO EN {time.time() - start_time:.1f}s! Guardados: {saved_count:,}", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pages", type=int, default=250, help="Páginas a auditar")
-    args, _ = parser.parse_known_args()
+    parser.add_argument("--worker-id", type=int, required=True, help="ID del worker (1 a 4)")
+    parser.add_argument("--total-workers", type=int, default=4, help="Total workers")
+    parser.add_argument("--total-pages", type=int, default=800, help="Total páginas catálogo")
+    args = parser.parse_args()
 
-    asyncio.run(run_scanner(max_pages=args.pages))
+    asyncio.run(run_worker(args.worker_id, args.total_workers, args.total_pages))
