@@ -9,14 +9,64 @@ on:
       pages:
         description: 'Cantidad de páginas a escanear (20 = prueba rápida | 1250 = ~50.000 productos)'
         required: true
-        default: '20'
+        default: '1250'
 
 permissions:
   contents: write
 
 jobs:
-  scrape_and_release:
-    name: Escáner Dropi Colombia
+  scan_shards:
+    name: Shard ${{ matrix.shard }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 0
+            os: ubuntu-latest
+            token_index: 1
+          - shard: 1
+            os: windows-latest
+            token_index: 2
+          - shard: 2
+            os: macos-latest
+            token_index: 3
+          - shard: 3
+            os: ubuntu-22.04
+            token_index: 4
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar Shard en Modo Directo
+        env:
+          DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 }}
+          DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
+          DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
+          DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
+          DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 4 --pages ${{ github.event.inputs.pages || '1250' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
+
+      - name: Subir Base de Datos del Shard
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog_shard_${{ matrix.shard }}
+          path: catalog_shard_${{ matrix.shard }}.db
+          if-no-files-found: error
+
+  consolidar_y_publicar:
+    name: Consolidar Shards y Publicar Release
+    needs: scan_shards
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -30,28 +80,22 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Ejecutar Escáner Continuo
-        env:
-          GOOGLE_PROXY_URLS: ${{ secrets.GOOGLE_PROXY_URLS }}
-          DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 }}
-          DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
-          DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
-          DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
-          DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
-          PYTHONUNBUFFERED: "1"
-        run: |
-          python cloud_worker.py --pages ${{ github.event.inputs.pages || '20' }}
+      - name: Descargar Todos los Shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: catalog_shard_*
+          path: downloaded_shards
 
-      - name: Comprimir Catálogo
+      - name: Fusionar Shards en Catálogo Maestro
         run: |
-          zip -9 catalog.db.zip catalog.db
+          python cloud_merge.py
 
       - name: Publicar Release con Catálogo Consolidado
         uses: softprops/action-gh-release@v2
         if: success()
         with:
           tag_name: "v1.0-data"
-          name: "Catálogo Dropi Colombia Automatizado"
+          name: "Catálogo Dropi Colombia Automatizado (50k)"
           body: "Base de datos consolidada con 50.000 productos auditados de Dropi Colombia."
           files: catalog.db.zip
         env:

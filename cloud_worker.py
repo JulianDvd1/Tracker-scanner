@@ -5,8 +5,6 @@ import json
 import sqlite3
 import random
 import argparse
-import queue
-import threading
 from typing import List, Dict, Any, Optional
 import requests
 from requests.adapters import HTTPAdapter
@@ -19,28 +17,17 @@ DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
 
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
 MIN_STOCK = 5        # Para incluir productos con stock moderado
-MIN_MARGIN = 10000   # Margen neto mínimo
-PAGE_SIZE = 40       # Límite estricto del servidor de Dropi (40 productos por paquete)
+MIN_MARGIN = 10000   # Margen neto mínimo ($10.000 COP)
+MAX_COST = 350000    # Costo máximo ($350.000 COP) para dropshipping COD
+MAX_MARGIN = 180000  # Margen máximo ($180.000 COP) para filtrar maquinaria industrial
+PAGE_SIZE = 40       # Límite estricto de Dropi (40 productos por paquete)
 
 USER_AGENTS = [
     "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "WordPress/6.4; Dropify",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
 ]
-
-def get_tokens() -> List[str]:
-    tokens = []
-    for k in ["DROPI_TOKEN_1", "DROPI_TOKEN_2", "DROPI_TOKEN_3", "DROPI_TOKEN_4", "DROPI_TOKEN"]:
-        val = (os.getenv(k) or "").strip().strip('"').strip("'")
-        if val and val not in tokens:
-            tokens.append(val)
-    return tokens
-
-def get_google_proxies() -> List[str]:
-    raw = os.getenv("GOOGLE_PROXY_URLS", "")
-    proxies = [p.strip().strip('"').strip("'") for p in raw.split(",") if p.strip()]
-    return proxies
 
 def init_db(db_path: str):
     conn = sqlite3.connect(db_path)
@@ -97,14 +84,11 @@ def create_http_session() -> requests.Session:
     session.mount("http://", adapter)
     return session
 
-def fetch_page_gas(
+def fetch_page_direct(
     session: requests.Session,
     page: int,
     token: str,
-    google_proxies: List[str],
-    proxy_idx_holder: List[int],
-    cooldown_event: threading.Event,
-    trigger_cooldown_fn
+    max_retries: int = 3
 ) -> List[Dict[str, Any]]:
     start_data = (page - 1) * PAGE_SIZE
     payload = {
@@ -118,316 +102,254 @@ def fetch_page_gas(
         "integration": True,
         "userVerified": True
     }
-    # Para Google Apps Script, enviar key tanto en minúscula como mayúscula
-    gas_headers = {
-        "Content-Type": "application/json;charset=UTF-8",
-        "dropi-integration-key": token,
-        "Dropi-Integration-Key": token
-    }
-
-    direct_headers = {
+    headers = {
         "Content-Type": "application/json;charset=UTF-8",
         "dropi-integration-key": token,
         "User-Agent": random.choice(USER_AGENTS)
     }
 
-    paquete_puente = {
-        "url": DROPI_API_URL,
-        "method": "post",
-        "headers": gas_headers,
-        "payload": payload
-    }
-
-    max_retries = 4
     for attempt in range(1, max_retries + 1):
-        # Si hay cooldown global activo, esperar a que termine
-        cooldown_event.wait()
-
-        # Determinar endpoint: Google Apps Script o llamada directa
-        if google_proxies:
-            idx = proxy_idx_holder[0] % len(google_proxies)
-            proxy_idx_holder[0] += 1
-            url_target = google_proxies[idx]
-            is_gas = True
-        else:
-            url_target = DROPI_API_URL
-            is_gas = False
-
+        t0 = time.time()
         try:
-            if is_gas:
-                r = session.post(url_target, json=paquete_puente, timeout=35, allow_redirects=True)
-                if r.status_code == 200:
-                    try:
-                        res_google = r.json()
-                    except Exception as je:
-                        res_google = {"error": f"JSON parse error: {je}", "body": r.text[:300], "status": 500}
+            r = session.post(DROPI_API_URL, json=payload, headers=headers, timeout=30)
+            elapsed = time.time() - t0
 
-                    # Paso 1: Extraer status y body retornados por Google Apps Script
-                    status_dropi = res_google.get("status")
-                    body_str = res_google.get("body", "{}")
+            if r.status_code == 200:
+                # Marcapasos adaptativo (reloj delta):
+                # Si el request tardó 3.2s, solo dormimos 5.5 - 3.2 = 2.3s
+                espera = max(0.5, 5.5 - elapsed)
+                time.sleep(espera)
 
-                    # Paso 2: Convertir body en el diccionario real de Dropi
-                    try:
-                        data_dropi = json.loads(body_str) if isinstance(body_str, str) else body_str
-                    except Exception as pe:
-                        data_dropi = {"isSuccess": False, "parse_error": str(pe), "raw": str(body_str)[:300]}
-
-                    if not isinstance(data_dropi, dict):
-                        data_dropi = {"isSuccess": False, "raw": str(data_dropi)[:300]}
-
-                    raw_objects = data_dropi.get("objects", []) if isinstance(data_dropi, dict) else []
-
-                    # Log de diagnóstico visible en las primeras páginas
-                    if page <= 3:
-                        keys = list(data_dropi.keys()) if isinstance(data_dropi, dict) else type(data_dropi)
-                        print(f" [DEBUG Pág {page}] Status Dropi: {status_dropi} | isSuccess: {data_dropi.get('isSuccess')} | Keys: {keys} | Total brutos: {len(raw_objects)}", flush=True)
-                        if not data_dropi.get("isSuccess") or not raw_objects:
-                            print(f" [DEBUG Pág {page} DETALLE] Body Dropi: {str(body_str)[:300]}", flush=True)
-
-                    if status_dropi == 200 and data_dropi.get("isSuccess"):
-                        return raw_objects
-                    elif status_dropi == 429:
-                        # Dropi reportó 429 a través de Google Apps Script
-                        time.sleep(random.uniform(3.0, 5.0))
-                        continue
-                    else:
-                        if page <= 5 or attempt == max_retries:
-                            print(f" [GAS ERROR Pág {page}] Dropi Status: {status_dropi} | Err: {res_google.get('error')} | Body: {str(body_str)[:200]}", flush=True)
-                        time.sleep(1.5)
-                        continue
-                elif r.status_code == 429:
-                    time.sleep(random.uniform(3.0, 5.0))
-                    continue
-                else:
-                    if page <= 5:
-                        print(f" [GAS HTTP {r.status_code} Pág {page}] {r.text[:150]}", flush=True)
-                    time.sleep(2.0)
-            else:
-                # Modo directo con marcapasos exacto de 5.5s
-                time.sleep(5.5)
-                r = session.post(url_target, json=payload, headers=direct_headers, timeout=25)
-                if r.status_code == 200:
-                    data_dropi = r.json()
-                    if data_dropi.get("isSuccess"):
-                        objs = data_dropi.get("objects", [])
-                        if page <= 2:
-                            print(f" [DIRECTO OK Pág {page}] Recibidos {len(objs)} productos desde Dropi.", flush=True)
-                        return objs
+                try:
+                    data = r.json()
+                except Exception as je:
+                    print(f" [ERROR JSON Pág {page}] {je}", flush=True)
                     return []
-                elif r.status_code == 429:
-                    print(f" [429 Rate-Limit Pág {page}] Pausa única de 60.0s para enfriar ventana...", flush=True)
-                    time.sleep(60.0)
-                    continue
+
+                if isinstance(data, dict) and data.get("isSuccess"):
+                    objs = data.get("objects", [])
+                    return objs
                 else:
-                    time.sleep(2.0)
-        except Exception as e:
-            if attempt == max_retries or page <= 5:
-                print(f" [EXCEPCIÓN Pág {page}] Intento {attempt}: {e}", flush=True)
+                    msg = data.get("message") if isinstance(data, dict) else "Formato inesperado"
+                    print(f" [DROPI RESPUESTA NO EXITOSA Pág {page}] {msg}", flush=True)
+                    return []
+
+            elif r.status_code == 429:
+                print(f" [429 Rate-Limit Pág {page}] Pausando 60.0s para enfriar ventana...", flush=True)
+                time.sleep(60.0)
+                continue
+
+            elif r.status_code == 401:
+                print(f" [401 No Autorizado Pág {page}] Token inválido o rechazo de cabecera: {r.text[:200]}", flush=True)
+                time.sleep(5.0)
+                return []
+
+            else:
+                print(f" [HTTP {r.status_code} Pág {page}] Intento {attempt}: {r.text[:150]}", flush=True)
+                time.sleep(2.0)
+
+        except requests.exceptions.RequestException as e:
+            elapsed = time.time() - t0
+            print(f" [TIMEOUT/RED Pág {page}] Intento {attempt} ({elapsed:.1f}s): {e}", flush=True)
             time.sleep(2.0)
 
     return []
 
-def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
-    tokens = get_tokens()
-    if not tokens:
-        print(" ERROR: Ningún token configurado para Dropi.", flush=True)
-        sys.exit(1)
-
-    google_proxies = get_google_proxies()
-    if not google_proxies:
-        num_workers = 1
-        print(" [MODO DIRECTO MARCAPASOS] Operando con 1 solo hilo a 5.5s y pausa única de 60s.", flush=True)
-    else:
-        num_workers = min(num_workers, len(tokens)) if len(tokens) < num_workers else num_workers
-
-    db_filename = "catalog.db"
-    init_db(db_filename)
-    conn = sqlite3.connect(db_filename, check_same_thread=False)
+def run_shard(
+    shard_id: int,
+    total_shards: int,
+    start_page: int,
+    end_page: int,
+    token: str,
+    db_name: str
+):
+    init_db(db_name)
+    conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
+    session = create_http_session()
 
-    db_lock = threading.Lock()
-    cooldown_lock = threading.Lock()
-    cooldown_event = threading.Event()
-    cooldown_event.set()
-    last_cooldown_time = [0.0]
+    total_pages = end_page - start_page + 1
+    masked_token = token[:6] + "..." + token[-4:] if len(token) > 10 else "***"
 
-    def trigger_cooldown():
-        with cooldown_lock:
-            now = time.time()
-            if now - last_cooldown_time[0] > 35:
-                last_cooldown_time[0] = now
-                print(f"\n [COOLDOWN GLOBAL] 429 persistente detectado. Pausa unificada de 30s...", flush=True)
-                cooldown_event.clear()
-                time.sleep(30.0)
-                cooldown_event.set()
-                print(f" [COOLDOWN GLOBAL] Reanudando peticiones...\n", flush=True)
-
-    page_queue = queue.Queue()
-    for p in range(1, total_pages + 1):
-        page_queue.put(p)
-
-    total_prods_assigned = total_pages * PAGE_SIZE
     print(f"\n=======================================================", flush=True)
-    print(f" ESCÁNER DROPI COLOMBIA CON GAS PROXY POOL", flush=True)
-    print(f" - Destino BD: {db_filename}", flush=True)
-    print(f" - Tokens asignados: {len(tokens)} (1 por hilo concurrente)", flush=True)
-    for idx, t in enumerate(tokens):
-        masked = t[:6] + "..." + t[-4:] if len(t) > 10 else f"*** (len {len(t)})"
-        print(f"   -> Token #{idx+1}: {masked}", flush=True)
-    print(f" - Puentes Google Apps Script configurados: {len(google_proxies)}", flush=True)
-    print(f" - Hilos paralelos (max_workers): {num_workers}", flush=True)
-    print(f" - Páginas a auditar: 1 a {total_pages} (~{total_prods_assigned:,} productos)", flush=True)
+    print(f" ESCÁNER DROPI DIRECTO - SHARD {shard_id + 1}/{total_shards}", flush=True)
+    print(f" - Destino BD: {db_name}", flush=True)
+    print(f" - Token asignado: {masked_token}", flush=True)
+    print(f" - Rango de páginas: {start_page} a {end_page} ({total_pages} páginas | ~{total_pages * PAGE_SIZE:,} productos)", flush=True)
+    print(f" - Marcapasos: Adaptativo a 5.5s (Delta Timing) | Pausa 429: 60s única", flush=True)
     print(f"=======================================================\n", flush=True)
 
-    saved_count = [0]
-    pages_done = [0]
+    saved_count = 0
+    pages_done = 0
     start_time = time.time()
 
-    def worker_thread(worker_idx: int):
-        token = tokens[worker_idx % len(tokens)]
-        session = create_http_session()
-        proxy_idx_holder = [worker_idx]
+    for page in range(start_page, end_page + 1):
+        objects = fetch_page_direct(session=session, page=page, token=token)
 
-        while True:
-            try:
-                page = page_queue.get_nowait()
-            except queue.Empty:
-                break
+        if objects:
+            now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
+            valid_prods = []
+            valid_stocks = []
 
-            objects = fetch_page_gas(
-                session=session,
-                page=page,
-                token=token,
-                google_proxies=google_proxies,
-                proxy_idx_holder=proxy_idx_holder,
-                cooldown_event=cooldown_event,
-                trigger_cooldown_fn=trigger_cooldown
-            )
+            for item in objects:
+                user_data = item.get("user") or {}
+                cat_user = user_data.get("category_user") or {}
+                plan_val = user_data.get("plan")
+                plan_str = plan_val.get("name", "") if isinstance(plan_val, dict) else str(plan_val or "")
+                cat_name = cat_user.get("name", "") if isinstance(cat_user, dict) else str(cat_user or "")
+                supp_plan = item.get("supplier_plan") or ""
+                if isinstance(supp_plan, dict):
+                    supp_plan = supp_plan.get("name", "")
 
-            if objects:
-                now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
-                valid_prods = []
-                valid_stocks = []
+                tier_raw = str(cat_name or plan_str or supp_plan or "").strip().upper()
+                is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
+                is_prem = bool(item.get("is_premium") or user_data.get("is_premium"))
 
-                for item in objects:
-                    user_data = item.get("user") or {}
-                    cat_user = user_data.get("category_user") or {}
-                    plan_val = user_data.get("plan")
-                    plan_str = plan_val.get("name", "") if isinstance(plan_val, dict) else str(plan_val or "")
-                    cat_name = cat_user.get("name", "") if isinstance(cat_user, dict) else str(cat_user or "")
-                    supp_plan = item.get("supplier_plan") or ""
-                    if isinstance(supp_plan, dict):
-                        supp_plan = supp_plan.get("name", "")
+                if "EXCLUSIVO" in tier_raw:
+                    tier = "PREMIUM EXCLUSIVO"
+                elif is_prem or "PREMIUM" in tier_raw:
+                    tier = "PREMIUM"
+                elif is_veri or "VERIFICADO" in tier_raw:
+                    tier = "VERIFICADO"
+                else:
+                    # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO
+                    continue
 
-                    tier_raw = str(cat_name or plan_str or supp_plan or "").strip().upper()
-                    is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
-                    is_prem = bool(item.get("is_premium") or user_data.get("is_premium"))
+                sale_price = float(item.get("sale_price") or 0)
+                sug_price = float(item.get("suggested_price") or sale_price)
+                margin = sug_price - sale_price
 
-                    if "EXCLUSIVO" in tier_raw:
-                        tier = "PREMIUM EXCLUSIVO"
-                    elif is_prem or "PREMIUM" in tier_raw:
-                        tier = "PREMIUM"
-                    elif is_veri or "VERIFICADO" in tier_raw:
-                        tier = "VERIFICADO"
-                    else:
-                        # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO DIRECTAMENTE
-                        continue
+                # Filtro de margen mínimo
+                if margin < MIN_MARGIN:
+                    continue
 
-                    sale_price = float(item.get("sale_price") or 0)
-                    sug_price = float(item.get("suggested_price") or sale_price)
-                    margin = sug_price - sale_price
+                # FILTRO DE DROPSHIPPING REAL:
+                # Solo productos testeables para dropshipping COD (Costo <= $350k y Margen <= $180k)
+                if sale_price > MAX_COST or margin > MAX_MARGIN:
+                    continue
 
-                    if margin < MIN_MARGIN:
-                        continue
+                # Sanitizar errores tipográficos de proveedores en Dropi
+                if (sale_price < 200000 and sug_price > sale_price * 4) or (sug_price > sale_price * 6) or sug_price > 1000000:
+                    continue
 
-                    # FILTRO DE DROPSHIPPING REAL (Excluir maquinaria industrial pesada y margenes irreales):
-                    # Solo productos testeables para dropshipping COD (Costo <= $350k y Margen <= $180k)
-                    if sale_price > 350000 or margin > 180000:
-                        continue
+                warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
+                total_stock = sum(int(w.get("stock") or 0) for w in warehouses) if warehouses else int(item.get("stock") or 0)
+                if warehouses and total_stock < MIN_STOCK:
+                    continue
 
-                    # Sanitizar errores tipográficos de proveedores en Dropi (ej. patillera de 35k con sugerido 80M)
-                    if (sale_price < 200000 and sug_price > sale_price * 4) or (sug_price > sale_price * 6) or sug_price > 1000000:
-                        continue
+                gallery = item.get("gallery") or []
+                img = ""
+                if gallery:
+                    img = gallery[0].get("urlS3") or gallery[0].get("url") or (gallery[0] if isinstance(gallery[0], str) else "")
 
-                    warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
-                    total_stock = sum(int(w.get("stock") or 0) for w in warehouses) if warehouses else int(item.get("stock") or 0)
-                    if warehouses and total_stock < MIN_STOCK:
-                        continue
+                pid = item.get("id")
+                pname = (item.get("name") or "Sin nombre").strip()
+                categories = item.get("categories") or []
+                cat = categories[0].get("name", "General") if categories and isinstance(categories[0], dict) else "General"
+                supp_id = item.get("user_id") or user_data.get("id") or 0
+                store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
+                supp_name = store_name if store_name else (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
+                plan_name = tier
 
-                    gallery = item.get("gallery") or []
-                    img = ""
-                    if gallery:
-                        img = gallery[0].get("urlS3") or gallery[0].get("url") or (gallery[0] if isinstance(gallery[0], str) else "")
+                valid_prods.append((
+                    pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
+                    margin, img, item.get("created_at") or now_iso, now_iso,
+                    store_name, 1 if is_veri else 0,
+                    1 if is_prem else 0, plan_name, tier
+                ))
 
-                    pid = item.get("id")
-                    pname = (item.get("name") or "Sin nombre").strip()
-                    categories = item.get("categories") or []
-                    cat = categories[0].get("name", "General") if categories and isinstance(categories[0], dict) else "General"
-                    supp_id = item.get("user_id") or user_data.get("id") or 0
-                    store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
-                    supp_name = store_name if store_name else (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
-                    plan_name = tier
+                for wh in warehouses:
+                    wh_id = wh.get("warehouse_id", 0)
+                    stock_val = int(wh.get("stock") or 0)
+                    valid_stocks.append((pid, wh_id, stock_val, now_iso))
 
-                    valid_prods.append((
-                        pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
-                        margin, img, item.get("created_at") or now_iso, now_iso,
-                        store_name, 1 if is_veri else 0,
-                        1 if is_prem else 0, plan_name, tier
-                    ))
+            if valid_prods:
+                cursor.executemany("""
+                    INSERT OR REPLACE INTO products (
+                        id, name, category, supplier_id, supplier_name, sale_price,
+                        suggested_price, margin, image_url, created_at, updated_at,
+                        store_name, is_verified, is_premium, supplier_plan, supplier_tier
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, valid_prods)
 
-                    for wh in warehouses:
-                        wh_id = wh.get("warehouse_id", 0)
-                        stock_val = int(wh.get("stock") or 0)
-                        valid_stocks.append((pid, wh_id, stock_val, now_iso))
+            if valid_stocks:
+                cursor.executemany("""
+                    INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
+                    VALUES (?, ?, ?, ?)
+                """, valid_stocks)
 
-                with db_lock:
-                    for vp in valid_prods:
-                        cursor.execute("""
-                            INSERT OR REPLACE INTO products (
-                                id, name, category, supplier_id, supplier_name, sale_price,
-                                suggested_price, margin, image_url, created_at, updated_at,
-                                store_name, is_verified, is_premium, supplier_plan, supplier_tier
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, vp)
-                    for vs in valid_stocks:
-                        cursor.execute("""
-                            INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
-                            VALUES (?, ?, ?, ?)
-                        """, vs)
-                    saved_count[0] += len(valid_prods)
+            conn.commit()
+            saved_count += len(valid_prods)
 
-            with db_lock:
-                pages_done[0] += 1
-                current_done = pages_done[0]
-                if current_done % 10 == 0 or current_done == total_pages:
-                    conn.commit()
-                    elapsed = time.time() - start_time
-                    speed = current_done / (elapsed / 60) if elapsed > 0 else 0
-                    print(f" -> Progreso: {current_done}/{total_pages} págs | Ganadores guardados: {saved_count[0]:,} | {speed:.1f} págs/min | Tiempo: {elapsed:.1f}s", flush=True)
-
-            page_queue.task_done()
-
-    threads = []
-    for i in range(num_workers):
-        t = threading.Thread(target=worker_thread, args=(i,), daemon=True)
-        threads.append(t)
-        t.start()
-
-    for t in threads:
-        t.join()
+        pages_done += 1
+        if pages_done % 10 == 0 or page == end_page:
+            elapsed = time.time() - start_time
+            speed = pages_done / (elapsed / 60) if elapsed > 0 else 0
+            pct = (pages_done / total_pages) * 100
+            print(f" -> [Shard {shard_id}] Progreso: {pages_done}/{total_pages} ({pct:.1f}%) | Ganadores: {saved_count:,} | {speed:.1f} págs/min | Tiempo: {elapsed:.1f}s", flush=True)
 
     conn.commit()
     conn.close()
+
     elapsed = time.time() - start_time
     print(f"\n=======================================================", flush=True)
-    print(f" ESCANEO COMPLETADO EN {elapsed:.1f}s ({elapsed/60:.1f} min)!", flush=True)
-    print(f" TOTAL GANADORES GUARDADOS: {saved_count[0]:,}", flush=True)
+    print(f" [SHARD {shard_id}] COMPLETADO EN {elapsed:.1f}s ({elapsed/60:.1f} min)!", flush=True)
+    print(f" [SHARD {shard_id}] GANADORES GUARDADOS: {saved_count:,} EN {db_name}", flush=True)
     print(f"=======================================================\n", flush=True)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=20, help="Total páginas (20 = ~800 productos para prueba)")
-    parser.add_argument("--workers", type=int, default=4, help="Número de hilos concurrentes (default 4)")
+    parser = argparse.ArgumentParser(description="Escáner Dropi Sharded en Modo Directo")
+    parser.add_argument("--shard-id", type=int, default=0, help="ID del Shard (0 a total_shards-1)")
+    parser.add_argument("--total-shards", type=int, default=1, help="Total de Shards paralelos (default 1)")
+    parser.add_argument("--start-page", type=int, default=None, help="Página inicial manual")
+    parser.add_argument("--end-page", type=int, default=None, help="Página final manual")
+    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=1250, help="Total de páginas global (default 1250)")
+    parser.add_argument("--token-index", type=int, default=1, help="Número de token a usar (1 a 4)")
+    parser.add_argument("--token", type=str, default="", help="Token explícito")
+    parser.add_argument("--db-name", type=str, default="", help="Nombre del archivo SQLite")
+
     args = parser.parse_args()
 
-    run_worker_pool(total_pages=args.total_pages, num_workers=args.workers)
+    # Determinar rango de páginas
+    if args.start_page is not None and args.end_page is not None:
+        start_p = args.start_page
+        end_p = args.end_page
+    else:
+        tot = args.total_pages
+        shards = max(1, args.total_shards)
+        shard_size = (tot + shards - 1) // shards
+        start_p = args.shard_id * shard_size + 1
+        end_p = min(tot, (args.shard_id + 1) * shard_size)
+
+    # Si el shard queda fuera del rango solicitado (ej. prueba corta de pocas páginas)
+    if start_p > end_p:
+        print(f" [SHARD {args.shard_id}] Rango vacío ({start_p} > {end_p}). Nada que procesar.")
+        db_file = args.db_name if args.db_name else f"catalog_shard_{args.shard_id}.db"
+        init_db(db_file)
+        sys.exit(0)
+
+    # Determinar base de datos de salida
+    db_file = args.db_name if args.db_name else (f"catalog_shard_{args.shard_id}.db" if args.total_shards > 1 else "catalog.db")
+
+    # Determinar token a usar
+    chosen_token = ""
+    if args.token:
+        chosen_token = args.token.strip()
+    else:
+        var_name = f"DROPI_TOKEN_{args.token_index}"
+        chosen_token = (os.getenv(var_name) or "").strip()
+        if not chosen_token:
+            chosen_token = (os.getenv("DROPI_TOKEN_1") or os.getenv("DROPI_TOKEN") or "").strip()
+
+    if not chosen_token:
+        print(f" ERROR: No se encontró ningún token configurado para el Shard {args.shard_id}.", flush=True)
+        sys.exit(1)
+
+    run_shard(
+        shard_id=args.shard_id,
+        total_shards=args.total_shards,
+        start_page=start_p,
+        end_page=end_p,
+        token=chosen_token,
+        db_name=db_file
+    )

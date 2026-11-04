@@ -3,6 +3,7 @@ import glob
 import sqlite3
 import zipfile
 import time
+import requests
 
 MASTER_DB = "catalog.db"
 
@@ -53,91 +54,156 @@ def init_master_db():
     conn.commit()
     conn.close()
 
-def merge_all_workers():
+def restore_previous_catalog():
+    if os.path.exists(MASTER_DB):
+        return
+    url = "https://github.com/JulianDvd1/Tracker-scanner/releases/download/v1.0-data/catalog.db.zip"
+    try:
+        print(f" -> Intentando descargar catálogo previo desde Release para trazabilidad de ventas...")
+        r = requests.get(url, timeout=30)
+        if r.status_code == 200:
+            with open("prev_catalog.zip", "wb") as f:
+                f.write(r.content)
+            with zipfile.ZipFile("prev_catalog.zip", "r") as z:
+                z.extractall(".")
+            print(" -> Catálogo previo restaurado con éxito.")
+            if os.path.exists("prev_catalog.zip"):
+                os.remove("prev_catalog.zip")
+    except Exception as e:
+        print(f" -> No se pudo restaurar catálogo previo (se creará uno nuevo): {e}")
+
+def merge_all_shards():
+    restore_previous_catalog()
     init_master_db()
+
     conn_master = sqlite3.connect(MASTER_DB)
     c_master = conn_master.cursor()
 
-    worker_files = sorted(glob.glob("downloaded_artifacts/**/worker_data_*.db", recursive=True) + glob.glob("worker_data_*.db"))
-    worker_files = list(dict.fromkeys(worker_files))
-    print(f"\n Fusionando {len(worker_files)} bases de datos parciales encontradas: {worker_files}...")
+    patterns = [
+        "downloaded_shards/**/*.db",
+        "downloaded_shards/*.db",
+        "catalog_shard_*.db",
+        "worker_data_*.db",
+        "downloaded_artifacts/**/*.db"
+    ]
+    shard_files = []
+    for pat in patterns:
+        shard_files.extend(glob.glob(pat, recursive=True))
+
+    shard_files = [f for f in list(dict.fromkeys(shard_files)) if os.path.basename(f) != MASTER_DB]
+    shard_files.sort()
+
+    print(f"\n=======================================================")
+    print(f" FUSIÓN DE SHARDS DE DROPI")
+    print(f" - Shards encontrados ({len(shard_files)}): {shard_files}")
+    print(f" - Base de datos destino: {MASTER_DB}")
+    print(f"=======================================================\n")
+
+    if not shard_files:
+        print(" [AVISO] No se encontraron archivos de shards para fusionar.")
 
     total_prods_merged = 0
     total_sales_detected = 0
     now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
 
-    for w_file in worker_files:
-        print(f" -> Procesando {w_file}...")
-        w_conn = sqlite3.connect(w_file)
-        w_conn.row_factory = sqlite3.Row
-        w_cursor = w_conn.cursor()
+    for s_file in shard_files:
+        print(f" -> Procesando {s_file}...")
+        try:
+            s_conn = sqlite3.connect(s_file)
+            s_conn.row_factory = sqlite3.Row
+            s_cursor = s_conn.cursor()
 
-        # 1. Insertar o actualizar productos
-        w_cursor.execute("SELECT * FROM products")
-        prods = w_cursor.fetchall()
-        for p in prods:
-            d = dict(p)
-            c_master.execute("""
-                INSERT OR REPLACE INTO products (
-                    id, name, category, supplier_id, supplier_name, sale_price,
-                    suggested_price, margin, image_url, created_at, updated_at,
-                    store_name, is_verified, is_premium, supplier_plan, supplier_tier
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                d["id"], d["name"], d["category"], d["supplier_id"], d["supplier_name"],
-                d["sale_price"], d["suggested_price"], d["margin"], d["image_url"],
-                d["created_at"], now_iso, d["store_name"], d["is_verified"],
-                d["is_premium"], d["supplier_plan"], d["supplier_tier"]
-            ))
-            total_prods_merged += 1
+            # 1. Insertar / Actualizar productos ganadores
+            s_cursor.execute("SELECT * FROM products")
+            prods = s_cursor.fetchall()
+            valid_prods = []
+            for p in prods:
+                d = dict(p)
+                valid_prods.append((
+                    d["id"], d["name"], d.get("category"), d.get("supplier_id"), d.get("supplier_name"),
+                    d.get("sale_price"), d.get("suggested_price"), d.get("margin"), d.get("image_url"),
+                    d.get("created_at"), now_iso, d.get("store_name"), d.get("is_verified", 0),
+                    d.get("is_premium", 0), d.get("supplier_plan"), d.get("supplier_tier")
+                ))
 
-        # 2. Procesar snapshots de stock y detectar ventas
-        w_cursor.execute("SELECT * FROM stock_snapshots")
-        snaps = w_cursor.fetchall()
-        for s in snaps:
-            pid = s["product_id"]
-            wid = s["warehouse_id"]
-            current_stock = s["stock"]
+            if valid_prods:
+                c_master.executemany("""
+                    INSERT OR REPLACE INTO products (
+                        id, name, category, supplier_id, supplier_name, sale_price,
+                        suggested_price, margin, image_url, created_at, updated_at,
+                        store_name, is_verified, is_premium, supplier_plan, supplier_tier
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, valid_prods)
+                total_prods_merged += len(valid_prods)
 
-            # Comprobar ultimo stock registrado en el master
-            c_master.execute("""
-                SELECT stock FROM stock_history
-                WHERE product_id = ? AND warehouse_id = ?
-                ORDER BY id DESC LIMIT 1
-            """, (pid, wid))
-            last = c_master.fetchone()
+            # 2. Copiar stock_history y calcular ventas
+            try:
+                s_cursor.execute("SELECT product_id, warehouse_id, stock, recorded_at FROM stock_history")
+                stocks = s_cursor.fetchall()
+                for st in stocks:
+                    pid = st["product_id"]
+                    wid = st["warehouse_id"]
+                    current_stock = st["stock"]
+                    rec_at = st["recorded_at"] or now_iso
 
-            if last:
-                last_stock = last[0]
-                diff = last_stock - current_stock
-                if 0 < diff <= 250:
+                    # Comparar con el último stock conocido en master
                     c_master.execute("""
-                        INSERT INTO sales_events (product_id, warehouse_id, units_sold, start_stock, end_stock, interval_hours, recorded_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (pid, wid, diff, last_stock, current_stock, 1.0, now_iso))
-                    total_sales_detected += diff
+                        SELECT stock FROM stock_history
+                        WHERE product_id = ? AND warehouse_id = ?
+                        ORDER BY id DESC LIMIT 1
+                    """, (pid, wid))
+                    last = c_master.fetchone()
 
-            c_master.execute("""
-                INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
-                VALUES (?, ?, ?, ?)
-            """, (pid, wid, current_stock, now_iso))
+                    if last:
+                        last_stock = last[0]
+                        diff = last_stock - current_stock
+                        # Si el stock disminuyó entre 1 y 250 unidades, es una venta confirmada
+                        if 0 < diff <= 250:
+                            c_master.execute("""
+                                INSERT INTO sales_events (product_id, warehouse_id, units_sold, start_stock, end_stock, interval_hours, recorded_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                            """, (pid, wid, diff, last_stock, current_stock, 1.0, rec_at))
+                            total_sales_detected += diff
 
-        w_conn.close()
+                    c_master.execute("""
+                        INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
+                        VALUES (?, ?, ?, ?)
+                    """, (pid, wid, current_stock, rec_at))
+
+            except sqlite3.OperationalError:
+                pass
+
+            s_conn.close()
+
+        except Exception as e:
+            print(f" [ERROR] Error leyendo shard {s_file}: {e}")
 
     conn_master.commit()
+
+    # Contar total consolidado único
+    c_master.execute("SELECT COUNT(*) FROM products")
+    unique_prods = c_master.fetchone()[0]
+
+    c_master.execute("SELECT COUNT(*) FROM stock_history")
+    total_stocks = c_master.fetchone()[0]
+
     conn_master.close()
 
-    print(f"\n CONSOLIDACIÓN EXITOSA:")
-    print(f" - Productos consolidados: {total_prods_merged:,}")
+    print(f"\n=======================================================")
+    print(f" CONSOLIDACIÓN EXITOSA:")
+    print(f" - Productos únicos en catálogo: {unique_prods:,}")
+    print(f" - Inserciones totales procesadas: {total_prods_merged:,}")
+    print(f" - Registros de stock: {total_stocks:,}")
     print(f" - Ventas nuevas detectadas: {total_sales_detected:,}")
 
-    # Comprimir en zip para descarga ultrarrápida
+    # Comprimir a catalog.db.zip
     zip_path = "catalog.db.zip"
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(MASTER_DB, arcname="catalog.db")
-    
+
     zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
     print(f" - Archivo comprimido generado: {zip_path} ({zip_size_mb:.2f} MB)")
+    print(f"=======================================================\n")
 
 if __name__ == "__main__":
-    merge_all_workers()
+    merge_all_shards()
