@@ -14,7 +14,7 @@ DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
 MIN_STOCK = 5        # Para incluir productos con stock moderado
 MIN_MARGIN = 10000   # Para incluir relojes Curren, Casrray, calzado y accesorios
-PAGE_SIZE = 40
+PAGE_SIZE = 100
 
 USER_AGENTS = [
     "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
@@ -84,8 +84,8 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "integration": True
     }
 
-    # Pausa calibrada para 2 cuentas (2 workers por cuenta = ~24 req/min c/u = <50 req/min por cuenta)
-    await asyncio.sleep(2.3 + random.uniform(0.1, 0.4))
+    # Pausa calibrada para 2 cuentas (2 workers por cuenta = ~17 req/min c/u = ~34 req/min por cuenta)
+    await asyncio.sleep(3.2 + random.uniform(0.1, 0.4))
 
     for attempt in range(1, 6):
         try:
@@ -107,7 +107,7 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
             await asyncio.sleep(2)
     return []
 
-async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 800):
+async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 300):
     token = get_token_for_worker(worker_id)
     if not token:
         print(f" ERROR: Token para Worker #{worker_id} no configurado en Secrets.", flush=True)
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--worker-id", type=int, required=True, help="ID del worker (1 a 4)")
     parser.add_argument("--total-workers", type=int, default=4, help="Total workers")
-    parser.add_argument("--total-pages", type=int, default=800, help="Total páginas catálogo")
+    parser.add_argument("--total-pages", type=int, default=300, help="Total páginas catálogo")
     args = parser.parse_args()
 
     asyncio.run(run_worker(args.worker_id, args.total_workers, args.total_pages))
