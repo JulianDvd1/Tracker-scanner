@@ -13,8 +13,8 @@ DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
 DROPI_TOKEN = os.getenv("DROPI_TOKEN", "").strip().strip('"').strip("'")
 
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
-MIN_STOCK = 15
-MIN_MARGIN = 18000
+MIN_STOCK = 5        # Reducido para no filtrar productos con stock moderado
+MIN_MARGIN = 10000   # Reducido a $10.000 COP para incluir relojes Curren, tenis y accesorios
 PAGE_SIZE = 40
 
 def init_worker_db(db_path: str):
@@ -124,10 +124,6 @@ async def run_scanner(max_pages: int = 250):
             objects = await fetch_page(session, start_data)
 
             if not objects:
-                # Si Dropi no devuelve objetos tras varias páginas, llegamos al final del catálogo activo
-                if page > 10:
-                    print(f" Final del catálogo activo alcanzado en página {page}.", flush=True)
-                    break
                 continue
 
             now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
