@@ -203,13 +203,16 @@ def fetch_page_gas(
                         print(f" [GAS HTTP {r.status_code} Pág {page}] {r.text[:150]}", flush=True)
                     time.sleep(2.0)
             else:
-                # Modo directo (fallback cuando no se han configurado proxies GAS)
-                time.sleep(2.5)
+                # Modo directo seguro con ritmo ágil
+                time.sleep(2.0 + random.uniform(0.1, 0.3))
                 r = session.post(url_target, json=payload, headers=direct_headers, timeout=25)
                 if r.status_code == 200:
                     data_dropi = r.json()
                     if data_dropi.get("isSuccess"):
-                        return data_dropi.get("objects", [])
+                        objs = data_dropi.get("objects", [])
+                        if page <= 2:
+                            print(f" [DIRECTO OK Pág {page}] Recibidos {len(objs)} productos desde Dropi.", flush=True)
+                        return objs
                     return []
                 elif r.status_code == 429:
                     trigger_cooldown_fn()
@@ -230,10 +233,11 @@ def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
         sys.exit(1)
 
     google_proxies = get_google_proxies()
-    num_workers = min(num_workers, len(tokens)) if len(tokens) < num_workers else num_workers
     if not google_proxies:
-        print(" [AVISO] GOOGLE_PROXY_URLS no configurado. Operando en modo directo seguro (1 worker).", flush=True)
-        num_workers = 1
+        num_workers = min(2, len(tokens))
+        print(f" [MODO DIRECTO 2X] Operando con {num_workers} workers paralelos (Token 1 y Token 2 independientes).", flush=True)
+    else:
+        num_workers = min(num_workers, len(tokens)) if len(tokens) < num_workers else num_workers
 
     db_filename = "catalog.db"
     init_db(db_filename)
@@ -335,8 +339,13 @@ def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
                     if margin < MIN_MARGIN:
                         continue
 
+                    # FILTRO DE DROPSHIPPING REAL (Excluir maquinaria industrial pesada y margenes irreales):
+                    # Solo productos testeables para dropshipping COD (Costo <= $350k y Margen <= $180k)
+                    if sale_price > 350000 or margin > 180000:
+                        continue
+
                     # Sanitizar errores tipográficos de proveedores en Dropi (ej. patillera de 35k con sugerido 80M)
-                    if (sale_price < 200000 and sug_price > sale_price * 5) or (sug_price > sale_price * 10) or sug_price > 10000000:
+                    if (sale_price < 200000 and sug_price > sale_price * 4) or (sug_price > sale_price * 6) or sug_price > 1000000:
                         continue
 
                     warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
