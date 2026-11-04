@@ -118,7 +118,13 @@ def fetch_page_gas(
         "integration": True,
         "userVerified": True
     }
-    headers = {
+    # Para Google Apps Script, NO enviar User-Agent (UrlFetchApp de Google lo prohíbe y lanza error 500)
+    gas_headers = {
+        "Content-Type": "application/json;charset=UTF-8",
+        "dropi-integration-key": token
+    }
+
+    direct_headers = {
         "Content-Type": "application/json;charset=UTF-8",
         "dropi-integration-key": token,
         "User-Agent": random.choice(USER_AGENTS)
@@ -127,7 +133,7 @@ def fetch_page_gas(
     paquete_puente = {
         "url": DROPI_API_URL,
         "method": "post",
-        "headers": headers,
+        "headers": gas_headers,
         "payload": payload
     }
 
@@ -152,32 +158,42 @@ def fetch_page_gas(
                 if r.status_code == 200:
                     try:
                         res_google = r.json()
-                    except Exception:
-                        res_google = {}
+                    except Exception as je:
+                        res_google = {"error": f"JSON parse error: {je}", "raw": r.text[:200]}
 
                     status_dropi = res_google.get("status")
                     if status_dropi == 200:
                         body = res_google.get("body", "{}")
                         data_dropi = json.loads(body) if isinstance(body, str) else body
                         if data_dropi.get("isSuccess"):
-                            return data_dropi.get("objects", [])
+                            objs = data_dropi.get("objects", [])
+                            if page <= 2:
+                                print(f" [GAS OK Pág {page}] Recibidos {len(objs)} productos desde Dropi.", flush=True)
+                            return objs
+                        else:
+                            if page <= 5:
+                                print(f" [AVISO Pág {page}] Dropi respondió isSuccess=False: {str(data_dropi)[:150]}", flush=True)
                         return []
                     elif status_dropi == 429:
                         # Dropi reportó 429 a través de Google Apps Script
                         time.sleep(random.uniform(3.0, 5.0))
                         continue
                     else:
+                        if page <= 5 or attempt == max_retries:
+                            print(f" [GAS ERROR Pág {page}] Dropi Status: {status_dropi} | Error: {res_google.get('error')} | Body: {str(res_google.get('body') or res_google.get('raw'))[:150]}", flush=True)
                         time.sleep(1.5)
                         continue
                 elif r.status_code == 429:
                     time.sleep(random.uniform(3.0, 5.0))
                     continue
                 else:
+                    if page <= 5:
+                        print(f" [GAS HTTP {r.status_code} Pág {page}] {r.text[:150]}", flush=True)
                     time.sleep(2.0)
             else:
                 # Modo directo (fallback cuando no se han configurado proxies GAS)
                 time.sleep(2.5)
-                r = session.post(url_target, json=payload, headers=headers, timeout=25)
+                r = session.post(url_target, json=payload, headers=direct_headers, timeout=25)
                 if r.status_code == 200:
                     data_dropi = r.json()
                     if data_dropi.get("isSuccess"):
@@ -189,9 +205,8 @@ def fetch_page_gas(
                 else:
                     time.sleep(1.5)
         except Exception as e:
-            if attempt == max_retries:
-                # print(f" Error persistente en pág {page}: {e}", flush=True)
-                pass
+            if attempt == max_retries or page <= 5:
+                print(f" [EXCEPCIÓN Pág {page}] Intento {attempt}: {e}", flush=True)
             time.sleep(2.0)
 
     return []
