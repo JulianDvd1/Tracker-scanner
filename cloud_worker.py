@@ -203,8 +203,8 @@ def fetch_page_gas(
                         print(f" [GAS HTTP {r.status_code} Pág {page}] {r.text[:150]}", flush=True)
                     time.sleep(2.0)
             else:
-                # Modo directo seguro con ritmo ágil
-                time.sleep(2.0 + random.uniform(0.1, 0.3))
+                # Modo directo con marcapasos exacto de 5.5s
+                time.sleep(5.5)
                 r = session.post(url_target, json=payload, headers=direct_headers, timeout=25)
                 if r.status_code == 200:
                     data_dropi = r.json()
@@ -215,10 +215,11 @@ def fetch_page_gas(
                         return objs
                     return []
                 elif r.status_code == 429:
-                    trigger_cooldown_fn()
+                    print(f" [429 Rate-Limit Pág {page}] Pausa única de 60.0s para enfriar ventana...", flush=True)
+                    time.sleep(60.0)
                     continue
                 else:
-                    time.sleep(1.5)
+                    time.sleep(2.0)
         except Exception as e:
             if attempt == max_retries or page <= 5:
                 print(f" [EXCEPCIÓN Pág {page}] Intento {attempt}: {e}", flush=True)
@@ -234,8 +235,8 @@ def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
 
     google_proxies = get_google_proxies()
     if not google_proxies:
-        num_workers = min(2, len(tokens))
-        print(f" [MODO DIRECTO 2X] Operando con {num_workers} workers paralelos (Token 1 y Token 2 independientes).", flush=True)
+        num_workers = 1
+        print(" [MODO DIRECTO MARCAPASOS] Operando con 1 solo hilo a 5.5s y pausa única de 60s.", flush=True)
     else:
         num_workers = min(num_workers, len(tokens)) if len(tokens) < num_workers else num_workers
 
@@ -425,7 +426,7 @@ def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=1250, help="Total páginas (1250 = ~50.000 productos)")
+    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=20, help="Total páginas (20 = ~800 productos para prueba)")
     parser.add_argument("--workers", type=int, default=4, help="Número de hilos concurrentes (default 4)")
     args = parser.parse_args()
 

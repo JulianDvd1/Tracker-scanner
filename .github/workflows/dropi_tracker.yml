@@ -7,16 +7,16 @@ on:
   workflow_dispatch:
     inputs:
       pages:
-        description: 'Cantidad de páginas a escanear (1250 = ~50.000 productos)'
+        description: 'Cantidad de páginas a escanear (20 = prueba rápida | 1250 = ~50.000 productos)'
         required: true
-        default: '1250'
+        default: '20'
 
 permissions:
   contents: write
 
 jobs:
   scrape_and_release:
-    name: Escáner Dropi Colombia (50k Productos)
+    name: Escáner Dropi Colombia
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -30,7 +30,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Ejecutar Escáner Continuo (50.000 Productos)
+      - name: Ejecutar Escáner Continuo
         env:
           GOOGLE_PROXY_URLS: ${{ secrets.GOOGLE_PROXY_URLS }}
           DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 }}
@@ -40,7 +40,7 @@ jobs:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --pages ${{ github.event.inputs.pages || '1250' }}
+          python cloud_worker.py --pages ${{ github.event.inputs.pages || '20' }}
 
       - name: Comprimir Catálogo
         run: |
