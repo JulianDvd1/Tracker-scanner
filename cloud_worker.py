@@ -84,8 +84,8 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "integration": True
     }
 
-    # Pausa ligera de seguridad
-    await asyncio.sleep(0.7)
+    # Pausa de seguridad calibrada para evitar bloqueos 429
+    await asyncio.sleep(2.0)
 
     for attempt in range(1, 4):
         try:
