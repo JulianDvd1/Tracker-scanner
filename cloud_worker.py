@@ -23,9 +23,16 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 ]
 
-def get_token(worker_id: int = 1) -> str:
-    token = os.getenv(f"DROPI_TOKEN_{worker_id}") or os.getenv("DROPI_TOKEN_1") or os.getenv("DROPI_TOKEN")
-    return (token or "").strip().strip('"').strip("'")
+def get_tokens(worker_id: int = 1) -> List[str]:
+    tokens = []
+    w_token = (os.getenv(f"DROPI_TOKEN_{worker_id}") or "").strip().strip('"').strip("'")
+    if w_token:
+        tokens.append(w_token)
+    for k in ["DROPI_TOKEN_1", "DROPI_TOKEN_2", "DROPI_TOKEN_3", "DROPI_TOKEN_4", "DROPI_TOKEN"]:
+        val = (os.getenv(k) or "").strip().strip('"').strip("'")
+        if val and val not in tokens:
+            tokens.append(val)
+    return tokens
 
 def init_db(db_path: str):
     conn = sqlite3.connect(db_path)
@@ -74,12 +81,7 @@ def init_db(db_path: str):
     conn.commit()
     conn.close()
 
-async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str) -> List[Dict[str, Any]]:
-    headers = {
-        "Content-Type": "application/json;charset=UTF-8",
-        "dropi-integration-key": token,
-        "User-Agent": random.choice(USER_AGENTS)
-    }
+async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: List[str], token_state: List[int]) -> List[Dict[str, Any]]:
     payload = {
         "startData": start_data,
         "pageSize": PAGE_SIZE,
@@ -92,10 +94,17 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "userVerified": True
     }
 
-    # Ritmo continuo calibrado para cero pausas por minuto
-    await asyncio.sleep(3.6 + random.uniform(0.1, 0.3))
+    # Ritmo continuo entre peticiones (2.5s)
+    await asyncio.sleep(2.5 + random.uniform(0.1, 0.3))
 
-    for attempt in range(1, 6):
+    max_attempts = max(3, len(tokens) + 1)
+    for attempt in range(1, max_attempts + 1):
+        token = tokens[token_state[0] % len(tokens)]
+        headers = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "dropi-integration-key": token,
+            "User-Agent": random.choice(USER_AGENTS)
+        }
         try:
             async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
                 if resp.status == 200:
@@ -104,23 +113,31 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
                         return data.get("objects", [])
                     return []
                 elif resp.status == 429:
-                    wait_time = attempt * 12 + random.uniform(1, 3)
-                    print(f" [429 Rate-Limit] Pausa preventiva {wait_time:.1f}s...", flush=True)
-                    await asyncio.sleep(wait_time)
+                    # 1. Si tenemos múltiples tokens, rotamos primero
+                    if len(tokens) > 1 and attempt < len(tokens):
+                        token_state[0] = (token_state[0] + 1) % len(tokens)
+                        print(f" [429] Rotando a Token #{token_state[0] + 1} de {len(tokens)} sin esperar...", flush=True)
+                        await asyncio.sleep(1.0)
+                        continue
+                    
+                    # 2. Pausa directa de 61.5s (la ventana exacta de reseteo de Dropi)
+                    print(f" [429 Rate-Limit] Pausa directa de 61.5s (reseteo exacto de ventana Dropi)...", flush=True)
+                    await asyncio.sleep(61.5)
                 else:
                     await asyncio.sleep(1.5)
         except Exception as e:
-            if attempt == 5:
+            if attempt == max_attempts:
                 print(f" Error en offset {start_data}: {e}", flush=True)
             await asyncio.sleep(2)
     return []
 
 async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 800):
-    token = get_token(worker_id)
-    if not token:
-        print(f" ERROR: Token para Worker #{worker_id} no configurado.", flush=True)
+    tokens = get_tokens(worker_id)
+    if not tokens:
+        print(f" ERROR: Ningún token configurado para Worker #{worker_id}.", flush=True)
         sys.exit(1)
 
+    token_state = [0]
     pages_per_worker = total_pages // total_workers
     start_page = ((worker_id - 1) * pages_per_worker) + 1
     end_page = start_page + pages_per_worker - 1
@@ -139,18 +156,19 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
     else:
         print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
     print(f" - Destino BD: {db_filename}", flush=True)
+    print(f" - Tokens disponibles para rotación: {len(tokens)}", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
-    print(f" - Ritmo continuo calibrado: 1 petición cada 3.6s (Cero bloqueos de ráfaga)", flush=True)
+    print(f" - Ritmo seguro: 1 petición cada 2.5s | Pausa directa 429: 61.5s exactos", flush=True)
     print(f"=======================================================\n", flush=True)
 
     saved_count = 0
     start_time = time.time()
 
     conn_tcp = aiohttp.TCPConnector(limit=3, ssl=False)
-    async with aiohttp.ClientSession(connector=conn_tcp) as session:
+    async with aiohttp.ClientSession(connector=connector if 'connector' in locals() else conn_tcp) as session:
         for page in range(start_page, end_page + 1):
             start_data = (page - 1) * PAGE_SIZE
-            objects = await fetch_page(session, start_data, token)
+            objects = await fetch_page(session, start_data, tokens, token_state)
 
             if not objects:
                 continue
