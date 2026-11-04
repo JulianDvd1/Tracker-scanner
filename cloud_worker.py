@@ -14,7 +14,7 @@ DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
 MIN_STOCK = 5        # Para incluir productos con stock moderado
 MIN_MARGIN = 10000   # Para incluir relojes Curren, Casrray, calzado y accesorios
-PAGE_SIZE = 40
+PAGE_SIZE = 40       # Límite estricto del servidor de Dropi (40 productos por paquete)
 
 USER_AGENTS = [
     "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
@@ -23,16 +23,11 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 ]
 
-def get_token_for_worker(worker_id: int) -> str:
-    # Busca el token específico del canal o fallback general
-    token = os.getenv(f"DROPI_TOKEN_{worker_id}")
-    if not token and worker_id == 1:
-        token = os.getenv("DROPI_TOKEN")
-    if not token:
-        token = os.getenv("DROPI_TOKEN")
+def get_token(worker_id: int = 1) -> str:
+    token = os.getenv(f"DROPI_TOKEN_{worker_id}") or os.getenv("DROPI_TOKEN_1") or os.getenv("DROPI_TOKEN")
     return (token or "").strip().strip('"').strip("'")
 
-def init_worker_db(db_path: str):
+def init_db(db_path: str):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("""
@@ -56,11 +51,23 @@ def init_worker_db(db_path: str):
         )
     """)
     c.execute("""
-        CREATE TABLE IF NOT EXISTS stock_snapshots (
+        CREATE TABLE IF NOT EXISTS stock_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER,
             warehouse_id INTEGER,
             stock INTEGER,
+            recorded_at TEXT
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS sales_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER,
+            warehouse_id INTEGER,
+            units_sold INTEGER,
+            start_stock INTEGER,
+            end_stock INTEGER,
+            interval_hours REAL,
             recorded_at TEXT
         )
     """)
@@ -84,8 +91,8 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "integration": True
     }
 
-    # Pausa calibrada para 2 cuentas (2 workers por cuenta = ~17 req/min c/u = ~34 req/min por cuenta)
-    await asyncio.sleep(3.2 + random.uniform(0.1, 0.4))
+    # Ritmo continuo seguro para 1 solo worker: 2.05s (~29 req/min, dentro del límite de Dropi)
+    await asyncio.sleep(2.05 + random.uniform(0.05, 0.15))
 
     for attempt in range(1, 6):
         try:
@@ -96,7 +103,7 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
                         return data.get("objects", [])
                     return []
                 elif resp.status == 429:
-                    wait_time = attempt * 10 + random.uniform(1, 3)
+                    wait_time = attempt * 12 + random.uniform(1, 3)
                     print(f" [429 Rate-Limit] Pausa preventiva {wait_time:.1f}s...", flush=True)
                     await asyncio.sleep(wait_time)
                 else:
@@ -107,10 +114,10 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
             await asyncio.sleep(2)
     return []
 
-async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 750):
-    token = get_token_for_worker(worker_id)
+async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 800):
+    token = get_token(worker_id)
     if not token:
-        print(f" ERROR: Token para Worker #{worker_id} no configurado en Secrets.", flush=True)
+        print(f" ERROR: Token para Worker #{worker_id} no configurado.", flush=True)
         sys.exit(1)
 
     pages_per_worker = total_pages // total_workers
@@ -119,16 +126,20 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
     if worker_id == total_workers:
         end_page = total_pages
 
-    db_filename = f"worker_data_{worker_id}.db"
-    init_worker_db(db_filename)
+    db_filename = "catalog.db" if total_workers == 1 else f"worker_data_{worker_id}.db"
+    init_db(db_filename)
     conn = sqlite3.connect(db_filename)
     cursor = conn.cursor()
 
     total_prods_assigned = (end_page - start_page + 1) * PAGE_SIZE
     print(f"\n=======================================================", flush=True)
-    print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
-    print(f" - Canal asignado: DROPI_TOKEN_{worker_id} (Canal Independiente)", flush=True)
+    if total_workers == 1:
+        print(f" ESCÁNER MAESTRO DROPI COLOMBIA INICIADO (1 WORKER CONTINUO)", flush=True)
+    else:
+        print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
+    print(f" - Destino BD: {db_filename}", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
+    print(f" - Ritmo seguro: 1 petición cada 2.1s (Cero choques de concurrencia)", flush=True)
     print(f"=======================================================\n", flush=True)
 
     saved_count = 0
@@ -178,12 +189,11 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
                 pid = item.get("id")
                 pname = (item.get("name") or "Sin nombre").strip()
                 categories = item.get("categories") or []
-                cat = categories[0].get("name") if categories else (item.get("category") or "General")
-
-                supp_id = user_data.get("id") or item.get("user_id")
-                supp_name = user_data.get("name") or item.get("supplier_name") or "Proveedor"
-                store_name = user_data.get("store_name") or supp_name
-                plan_name = tier
+                cat = categories[0].get("name", "General") if categories and isinstance(categories[0], dict) else "General"
+                supp_id = item.get("user_id") or user_data.get("id") or 0
+                supp_name = (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
+                store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
+                plan_name = str(cat_user.get("name") or user_data.get("plan") or "Plan Estándar")
 
                 cursor.execute("""
                     INSERT OR REPLACE INTO products (
@@ -194,15 +204,15 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
                 """, (
                     pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
                     margin, img, item.get("created_at") or now_iso, now_iso,
-                    store_name, 1 if item.get("is_verified") else 0,
-                    1 if item.get("is_premium") else 0, plan_name, tier
+                    store_name, 1 if is_veri else 0,
+                    1 if is_prem else 0, plan_name, tier
                 ))
 
                 for wh in warehouses:
                     wh_id = wh.get("warehouse_id", 0)
                     stock_val = int(wh.get("stock") or 0)
                     cursor.execute("""
-                        INSERT INTO stock_snapshots (product_id, warehouse_id, stock, recorded_at)
+                        INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
                         VALUES (?, ?, ?, ?)
                     """, (pid, wh_id, stock_val, now_iso))
 
@@ -211,17 +221,21 @@ async def run_worker(worker_id: int, total_workers: int = 4, total_pages: int = 
             if page % 10 == 0 or page == end_page:
                 conn.commit()
                 elapsed = time.time() - start_time
-                print(f" Worker #{worker_id}: Pág {page}/{end_page} lista | Ganadores: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
+                print(f" -> Pág {page}/{end_page} auditada | Ganadores guardados: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
 
     conn.commit()
     conn.close()
-    print(f"\n WORKER #{worker_id} FINALIZADO EN {time.time() - start_time:.1f}s! Guardados: {saved_count:,}", flush=True)
+    elapsed = time.time() - start_time
+    print(f"\n=======================================================", flush=True)
+    print(f" ESCANEO COMPLETADO EN {elapsed:.1f}s ({elapsed/60:.1f} min)!", flush=True)
+    print(f" TOTAL GANADORES GUARDADOS: {saved_count:,}", flush=True)
+    print(f"=======================================================\n", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--worker-id", type=int, required=True, help="ID del worker (1 a 4)")
-    parser.add_argument("--total-workers", type=int, default=4, help="Total workers")
-    parser.add_argument("--total-pages", type=int, default=750, help="Total páginas catálogo")
+    parser.add_argument("--worker-id", type=int, default=1, help="ID del worker (default 1)")
+    parser.add_argument("--total-workers", type=int, default=1, help="Total workers (default 1)")
+    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=800, help="Total páginas (800 = ~32.000 productos)")
     args = parser.parse_args()
 
     asyncio.run(run_worker(args.worker_id, args.total_workers, args.total_pages))

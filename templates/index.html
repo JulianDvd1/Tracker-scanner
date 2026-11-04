@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DropiSpy Elite | Radar Inteligente de Productos Ganadores</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', 'system-ui', 'sans-serif'],
+            heading: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#EEF2FF',
+              100: '#E0E7FF',
+              500: '#6366F1',
+              600: '#4F46E5',
+              700: '#4338CA'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Estilos dinámicos para modo Claro y Oscuro */
+    html.light body { background-color: #F8FAFC; color: #0F172A; }
+    html.dark body { background-color: #0B0F19; color: #F1F5F9; }
+
+    /* Cards adaptativas */
+    html.light .app-card { background: #FFFFFF; border: 1px solid #E2E8F0; }
+    html.dark .app-card { background: #131B2E; border: 1px solid #1E293B; }
+    
+    html.light .app-card:hover { border-color: #6366F1; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06); }
+    html.dark .app-card:hover { border-color: #6366F1; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); }
+
+    html.light .app-sidebar { background: #FFFFFF; border-color: #E2E8F0; }
+    html.dark .app-sidebar { background: #0E1424; border-color: #1E293B; }
+
+    html.light .app-header { background: #FFFFFF; border-color: #E2E8F0; }
+    html.dark .app-header { background: #0E1424; border-color: #1E293B; }
+
+    html.light .app-input { background: #F8FAFC; border-color: #E2E8F0; color: #0F172A; }
+    html.dark .app-input { background: #131B2E; border-color: #1E293B; color: #F1F5F9; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9999px; }
+    html.dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+    @keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
+    .ticker-wrapper { display: flex; width: max-content; animation: marquee 50s linear infinite; }
+    .ticker-wrapper:hover { animation-play-state: paused; }
+
+    /* Efecto Cascada (Staggered Fade-in) */
+    @keyframes cascadeFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .cascade-item {
+      opacity: 0;
+      animation: cascadeFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+
+<body class="flex h-screen overflow-hidden antialiased transition-colors duration-200">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="w-64 app-sidebar border-r flex flex-col justify-between shrink-0 select-none hidden lg:flex z-30 transition-colors">
+    <div>
+      <!-- Brand -->
+      <div class="h-16 flex items-center px-6 border-b border-inherit gap-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30">
+          <i class="fa-solid fa-bolt text-sm"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-heading font-black text-slate-900 dark:text-white tracking-tight text-base">Dropi<span class="text-indigo-600">Spy</span></span>
+            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-mono">ELITE</span>
+          </div>
+          <p class="text-[10px] text-slate-400 font-medium">Radar de Ventas Dropi COD</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="p-4 space-y-1">
+        <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Vistas Principales</div>
+        
+        <button onclick="switchView('radar')" id="nav-btn-radar" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 font-semibold text-xs border border-indigo-100 dark:border-indigo-800 transition">
+          <i class="fa-solid fa-fire text-indigo-600 w-4 text-center"></i>
+          <span>Winning Radar</span>
+          <span class="ml-auto text-[10px] bg-indigo-600 text-white font-bold px-1.5 py-0.2 rounded-full">LIVE</span>
+        </button>
+
+        <button onclick="switchView('leaderboard')" id="nav-btn-leaderboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 font-medium text-xs transition">
+          <i class="fa-solid fa-trophy text-amber-500 w-4 text-center"></i>
+          <span>Top Leaderboard</span>
+          <span class="ml-auto text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-1.5 py-0.2 rounded font-mono">KALO</span>
+        </button>
+
+        <button onclick="switchView('watchlist')" id="nav-btn-watchlist" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 font-medium text-xs transition">
+          <i class="fa-solid fa-star text-amber-500 w-4 text-center"></i>
+          <span>Mi Lista de Testeo</span>
+          <span class="ml-auto text-[10px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold px-1.5 py-0.2 rounded font-mono" id="fav-count-badge">0</span>
+        </button>
+
+        <button onclick="switchView('suppliers')" id="nav-btn-suppliers" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 font-medium text-xs transition">
+          <i class="fa-solid fa-warehouse text-slate-400 w-4 text-center"></i>
+          <span>Top Proveedores</span>
+        </button>
+
+        <button onclick="openRoiModal()" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 font-medium text-xs transition">
+          <i class="fa-solid fa-calculator text-slate-400 w-4 text-center"></i>
+          <span>Calculadora COD</span>
+        </button>
+      </div>
+
+      <!-- Quick Niches -->
+      <div class="p-4 space-y-1 border-t border-inherit">
+        <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Categorías Top</div>
+        
+        <button onclick="setCategory('Hogar')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
+          <span class="flex items-center gap-2.5"><i class="fa-solid fa-couch text-slate-400 text-xs"></i> Hogar & Cocina</span>
+          <span class="text-[10px] text-slate-400 font-mono">522</span>
+        </button>
+
+        <button onclick="setCategory('Herramientas')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
+          <span class="flex items-center gap-2.5"><i class="fa-solid fa-wrench text-slate-400 text-xs"></i> Herramientas</span>
+          <span class="text-[10px] text-slate-400 font-mono">311</span>
+        </button>
+
+        <button onclick="setCategory('Tecnologia')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
+          <span class="flex items-center gap-2.5"><i class="fa-solid fa-laptop text-slate-400 text-xs"></i> Tecnología</span>
+          <span class="text-[10px] text-slate-400 font-mono">395</span>
+        </button>
+
+        <button onclick="setCategory('Belleza')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
+          <span class="flex items-center gap-2.5"><i class="fa-solid fa-spa text-slate-400 text-xs"></i> Belleza & Salud</span>
+          <span class="text-[10px] text-slate-400 font-mono">259</span>
+        </button>
+
+        <button onclick="setCategory('Ropa Deportiva')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
+          <span class="flex items-center gap-2.5"><i class="fa-solid fa-shoe-prints text-slate-400 text-xs"></i> Calzado & Zapatos</span>
+          <span class="text-[10px] text-slate-400 font-mono">15+</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer Stats -->
+    <div class="p-4 border-t border-inherit bg-slate-50/50 dark:bg-slate-900/50">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <div class="flex-1 truncate">
+          <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <span>Dropi Colombia</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono" id="sidebar-total-prods">3,425 auditados</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden">
+    
+    <!-- Top Header -->
+    <header class="h-16 app-header border-b flex items-center justify-between px-6 shrink-0 z-20 transition-colors">
+      
+      <div class="relative w-72 sm:w-96">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+        <input 
+          type="text" 
+          id="search-input"
+          placeholder="Buscar producto, ID o proveedor..."
+          class="w-full app-input border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition"
+        >
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Dark Mode Toggle Button -->
+        <button onclick="toggleDarkMode()" id="dark-mode-btn" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Cambiar Tema">
+          <i class="fa-solid fa-moon dark:hidden text-xs"></i>
+          <i class="fa-solid fa-sun hidden dark:block text-xs text-amber-400"></i>
+        </button>
+
+        <div class="hidden sm:flex items-center gap-3 px-3.5 py-1.5 app-card rounded-xl text-xs font-mono">
+          <span class="text-slate-400 text-[11px]">Ventas Totales:</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="top-units-metric">21,654 unds</span>
+        </div>
+
+        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl shadow-sm transition">
+          <i class="fa-solid fa-calculator text-xs"></i>
+          <span class="hidden sm:inline">Calculadora</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Ticker de Ventas en Vivo -->
+    <div class="h-9 app-header border-b flex items-center overflow-hidden relative shrink-0 transition-colors">
+      <div class="h-full px-4 app-header flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 shrink-0 z-10 border-r border-inherit font-heading">
+        <i class="fa-solid fa-bolt text-indigo-500"></i>
+        <span>Ventas Recientes</span>
+      </div>
+      <div class="overflow-hidden flex-1 relative">
+        <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white dark:from-[#0E1424] to-transparent z-10 pointer-events-none"></div>
+        <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-[#0E1424] to-transparent z-10 pointer-events-none"></div>
+        <div id="ticker-track" class="ticker-wrapper flex items-center gap-4 py-1">
+          <span class="text-xs text-slate-400">Cargando eventos...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body Container -->
+    <main class="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+      
+      <!-- ================= VISTA 1: WINNING RADAR ================= -->
+      <div id="view-radar" class="space-y-6">
+        
+        <!-- Banner Resumen -->
+        <div class="app-card rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
+          <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold mb-2 border border-indigo-100 dark:border-indigo-800">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Dropi Colombia Inteligencia de Ventas Diarias</span>
+            </div>
+            <h1 class="text-xl md:text-2xl font-heading font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Radar de Ganadores & Velocidad Diaria
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+              Monitorea ventas desglosadas por cada día, proveedores certificados y espía creativos con 1 clic en Meta, TikTok y Google.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 shrink-0">
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[105px]">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Unidades</span>
+              <span class="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="banner-units">--</span>
+            </div>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[105px]">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Ganadores</span>
+              <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400 font-mono" id="banner-winners">--</span>
+            </div>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[105px]">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Volumen</span>
+              <span class="text-lg font-bold text-slate-900 dark:text-white font-mono" id="banner-gmv">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toolbar Filtros -->
+        <div class="space-y-3">
+          <!-- Pills Categorias -->
+          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+            <button onclick="setCategory('all')" class="cat-pill active px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white shrink-0 transition">
+              Todas
+            </button>
+            <button onclick="setCategory('Hogar')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              🏠 Hogar
+            </button>
+            <button onclick="setCategory('Herramientas')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              🔧 Herramientas
+            </button>
+            <button onclick="setCategory('Tecnologia')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              📱 Tecnología
+            </button>
+            <button onclick="setCategory('Belleza')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              ✨ Belleza
+            </button>
+            <button onclick="setCategory('Salud')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              🩺 Salud
+            </button>
+            <button onclick="setCategory('Bienestar')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              🌿 Bienestar
+            </button>
+            <button onclick="setCategory('Cocina')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              🍳 Cocina
+            </button>
+            <button onclick="setCategory('Ropa Deportiva')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              👟 Calzado
+            </button>
+            <button onclick="setCategory('Moda')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              👕 Ropa
+            </button>
+          </div>
+
+          <!-- Selects de Filtros -->
+          <div class="flex flex-wrap items-center justify-between gap-3 app-card p-3 rounded-2xl">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs text-slate-400 font-medium">Filtrar:</span>
+              
+              <select id="tier-select" class="app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                <option value="all">⭐ Todos los Proveedores</option>
+                <option value="PREMIUM EXCLUSIVO">👑 Premium Exclusivo</option>
+                <option value="PREMIUM">💎 Premium</option>
+                <option value="VERIFICADO">✅ Verificado</option>
+              </select>
+
+              <select id="margin-select" class="app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                <option value="0">Cualquier Margen</option>
+                <option value="25000">Margen &ge; $25.000 COP</option>
+                <option value="40000">Margen &ge; $40.000 COP</option>
+                <option value="60000">Margen &ge; $60.000 COP</option>
+              </select>
+
+              <select id="badge-select" class="app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                <option value="all">⚡ Todos los Estados</option>
+                <option value="ESCALANDO">🚀 Escalando Ahora</option>
+                <option value="CONSOLIDADO">🔥 Consolidados (+300)</option>
+                <option value="JOYA OCULTA">💎 Joyas Ocultas (+$50k)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2 ml-auto">
+              <span class="text-xs text-slate-400 font-medium">Ordenar:</span>
+              <select id="sort-select" class="app-input border text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                <option value="sales">🔥 Más Vendidos</option>
+                <option value="margin">💰 Mayor Margen</option>
+                <option value="newest">⚡ Más Recientes</option>
+                <option value="price_asc">📉 Menor Costo</option>
+                <option value="price_desc">📈 Mayor Costo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16">
+          <div class="col-span-full py-24 text-center text-slate-400">
+            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
+            <p class="text-sm">Analizando catálogo y velocidad diaria...</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= VISTA 2: TOP LEADERBOARD (KALODATA & DROPDATA STYLE) ================= -->
+      <div id="view-leaderboard" class="hidden space-y-6">
+        
+        <!-- Header Banner Kalodata -->
+        <div class="app-card rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
+          <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[11px] font-bold mb-2 border border-amber-300 dark:border-amber-700">
+              <i class="fa-solid fa-trophy text-amber-500"></i>
+              <span>Kalodata & Dropdata Intelligence Index</span>
+            </div>
+            <h1 class="text-xl md:text-2xl font-heading font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Top 50 Leaderboard de Facturación & Velocidad
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+              Ranking de productos con mayor facturación bruta estimada (GMV), rotación diaria y benchmarks de pauta calculados para Dropshipping COD.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 shrink-0">
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[120px]">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Top 1 GMV</span>
+              <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="kalo-top1-gmv">$143.4M</span>
+            </div>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[120px]">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">CPA Objetivo Prom.</span>
+              <span class="text-base font-bold text-indigo-600 dark:text-indigo-400 font-mono" id="kalo-avg-cpa">$18.500</span>
+            </div>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[120px] col-span-2 sm:col-span-1">
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">ROAS Breakeven</span>
+              <span class="text-base font-bold text-slate-900 dark:text-white font-mono">2.8x - 3.4x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtros Rápidos del Leaderboard -->
+        <div class="flex flex-wrap items-center justify-between gap-3 app-card p-3 rounded-2xl">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs text-slate-400 font-medium">Clasificación:</span>
+            <button onclick="filterLeaderboard('all')" class="kalo-filter-btn active px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition">
+              Todos (Top 50)
+            </button>
+            <button onclick="filterLeaderboard('MEGA WINNER')" class="kalo-filter-btn px-3 py-1.5 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+              🔥 Mega Winners (+800 unds)
+            </button>
+            <button onclick="filterLeaderboard('SUPER SCALED')" class="kalo-filter-btn px-3 py-1.5 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+              🚀 Super Scaled (+250 unds)
+            </button>
+            <button onclick="filterLeaderboard('RISING STAR')" class="kalo-filter-btn px-3 py-1.5 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+              ✨ Rising Stars
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 ml-auto">
+            <button onclick="exportLeaderboardCsv()" class="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl transition">
+              <i class="fa-solid fa-file-csv"></i>
+              <span>Exportar Leaderboard</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla Kalodata -->
+        <div class="app-card rounded-2xl border overflow-hidden shadow-sm">
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse" id="leaderboard-table">
+              <thead>
+                <tr class="bg-slate-50 dark:bg-slate-900/80 border-b border-inherit text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <th class="py-3.5 px-4 text-center w-14"># Rank</th>
+                  <th class="py-3.5 px-4">Producto & Categoría</th>
+                  <th class="py-3.5 px-4 text-right">GMV Estimado (COP)</th>
+                  <th class="py-3.5 px-4 text-right">Unidades Vendidas</th>
+                  <th class="py-3.5 px-4 text-right">Margen Neto</th>
+                  <th class="py-3.5 px-4 text-center">Benchmark CPA</th>
+                  <th class="py-3.5 px-4 text-center">Devolución Est.</th>
+                  <th class="py-3.5 px-4 text-center">Momentum</th>
+                  <th class="py-3.5 px-4 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-tbody" class="divide-y divide-inherit text-xs">
+                <tr>
+                  <td colspan="9" class="py-20 text-center text-slate-400">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-600 mb-2"></i>
+                    <p>Generando Leaderboard Kalodata...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= VISTA 3: WATCHLIST / FAVORITOS ================= -->
+      <div id="view-watchlist" class="hidden space-y-6">
+        <div class="app-card rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="inline-flex items-center gap-1.5 text-amber-500 text-xs font-bold uppercase tracking-wider mb-1">
+              <i class="fa-solid fa-star"></i> Lista de Testeo Guardada
+            </div>
+            <h2 class="text-xl font-heading font-black text-slate-900 dark:text-white">Mis Productos Seleccionados</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Guarda los ganadores que vas a pautar y expórtalos en Excel/CSV con 1 clic.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="exportWatchlistCsv()" class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+              <i class="fa-solid fa-file-excel"></i>
+              <span>Exportar a Excel / CSV</span>
+            </button>
+            <button onclick="clearWatchlist()" class="text-xs text-rose-500 hover:text-rose-600 px-3 py-2 rounded-xl border border-rose-200 dark:border-rose-900 transition">
+              Limpiar Todo
+            </button>
+          </div>
+        </div>
+
+        <div id="watchlist-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+      <!-- ================= VISTA 3: TOP PROVEEDORES ================= -->
+      <div id="view-suppliers" class="hidden space-y-6">
+        <div class="app-card rounded-2xl p-6 shadow-sm">
+          <div class="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
+            <i class="fa-solid fa-warehouse"></i> Bodegas Certificadas
+          </div>
+          <h2 class="text-xl font-heading font-black text-slate-900 dark:text-white">Directorio de Proveedores con Mayor Rotación</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Espía a los proveedores que más unidades mueven a diario en Dropi Colombia.</p>
+        </div>
+
+        <div id="suppliers-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-16">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ================= BARRA DE COMPARADOR FLOTANTE (Side-by-Side) ================= -->
+  <div id="compare-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 z-40 flex items-center gap-4 hidden">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+      <span class="text-xs font-semibold" id="compare-count-text">0 seleccionados para comparar</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openCompareModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl transition">
+        Comparar Ahora
+      </button>
+      <button onclick="clearCompare()" class="text-slate-400 hover:text-white text-xs px-2 py-1">
+        Cancelar
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL COMPARADOR (Side-by-Side) ================= -->
+  <div id="compare-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="app-card rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 relative shadow-2xl">
+      <button onclick="closeCompareModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <h3 class="text-lg font-heading font-black text-slate-900 dark:text-white mb-1">Comparativa Frente a Frente</h3>
+      <p class="text-xs text-slate-500 mb-6">Analiza costo, margen y tracción de ventas para elegir cuál testear primero.</p>
+
+      <div id="compare-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- Dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL DETALLE CON VENTAS DIARIAS ================= -->
+  <div id="product-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="app-card rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 relative shadow-2xl">
+      <button onclick="closeProductModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      
+      <div id="modal-content">
+        <div class="text-center py-16"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL CALCULADORA ================= -->
+  <div id="roi-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl">
+      <button onclick="closeRoiModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-800 text-base">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white font-heading">Calculadora de Utilidad Neta (COD)</h3>
+          <p class="text-xs text-slate-500">Evalúa tus números reales antes de pautar</p>
+        </div>
+      </div>
+
+      <div class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Precio de Venta Sugerido ($ COP)</label>
+          <input type="number" id="calc-price" value="89000" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Costo Proveedor ($)</label>
+            <input type="number" id="calc-cost" value="35000" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Flete Promedio ($)</label>
+            <input type="number" id="calc-shipping" value="18500" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">CPA Estimado Ads ($)</label>
+            <input type="number" id="calc-cpa" value="17000" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">% Devoluciones</label>
+            <input type="number" id="calc-returns" value="12" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+          </div>
+        </div>
+
+        <div class="app-card p-4 rounded-2xl border mt-4 space-y-2">
+          <div class="flex justify-between text-xs text-slate-500">
+            <span>Margen Bruto Unitario:</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200 font-mono" id="calc-gross">--</span>
+          </div>
+          <div class="flex justify-between text-xs text-slate-500">
+            <span>Costo Total por Pedido:</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200 font-mono" id="calc-total-cost">--</span>
+          </div>
+          <div class="pt-2 border-t border-inherit flex justify-between items-center">
+            <span class="text-sm font-bold text-slate-900 dark:text-white font-heading">Ganancia Neta en Bolsillo:</span>
+            <span class="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="calc-net">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SCRIPTS JS ================= -->
+  <script>
+    let currentCategory = 'all';
+    let currentTier = 'all';
+    let currentMargin = 0;
+    let currentSort = 'sales';
+    let currentBadge = 'all';
+    let searchQuery = '';
+    let currentChart = null;
+    let cachedProducts = [];
+
+    // Estado de Watchlist / Favoritos (LocalStorage)
+    let watchlist = JSON.parse(localStorage.getItem('dropispy_watchlist') || '[]');
+    // Estado de Comparador
+    let compareList = [];
+
+    // Dark Mode Toggle
+    function initTheme() {
+      const isDark = localStorage.getItem('dropispy_theme') === 'dark' || 
+        (!localStorage.getItem('dropispy_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (isDark) document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+    }
+    function toggleDarkMode() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('dropispy_theme', isDark ? 'dark' : 'light');
+      if (currentChart) {
+        // Redibujar grafica con colores acordes
+        currentChart.options.scales.x.grid.color = isDark ? '#1E293B' : '#E2E8F0';
+        currentChart.options.scales.y.grid.color = isDark ? '#1E293B' : '#E2E8F0';
+        currentChart.update();
+      }
+    }
+    initTheme();
+
+    // Vistas (Tabs)
+    function switchView(view) {
+      document.getElementById('view-radar').classList.add('hidden');
+      document.getElementById('view-leaderboard').classList.add('hidden');
+      document.getElementById('view-watchlist').classList.add('hidden');
+      document.getElementById('view-suppliers').classList.add('hidden');
+
+      ['radar', 'leaderboard', 'watchlist', 'suppliers'].forEach(v => {
+        const btn = document.getElementById(`nav-btn-${v}`);
+        if (btn) {
+          btn.classList.remove('bg-indigo-50', 'dark:bg-indigo-950/70', 'text-indigo-700', 'dark:text-indigo-300', 'border', 'border-indigo-100', 'dark:border-indigo-800');
+          btn.classList.add('text-slate-600', 'dark:text-slate-400');
+        }
+      });
+
+      const activeBtn = document.getElementById(`nav-btn-${view}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
+        activeBtn.classList.add('bg-indigo-50', 'dark:bg-indigo-950/70', 'text-indigo-700', 'dark:text-indigo-300', 'border', 'border-indigo-100', 'dark:border-indigo-800');
+      }
+
+      document.getElementById(`view-${view}`).classList.remove('hidden');
+
+      if (view === 'leaderboard') loadLeaderboard();
+      if (view === 'watchlist') renderWatchlist();
+      if (view === 'suppliers') loadSuppliers();
+    }
+
+    // Estadísticas
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        document.getElementById('top-units-metric').innerText = Number(data.total_units_sold).toLocaleString('es-CO') + ' unds';
+        document.getElementById('sidebar-total-prods').innerText = Number(data.total_products).toLocaleString('es-CO') + ' auditados';
+        document.getElementById('banner-units').innerText = Number(data.total_units_sold).toLocaleString('es-CO');
+        document.getElementById('banner-winners').innerText = Number(data.winning_products_count).toLocaleString('es-CO');
+        document.getElementById('banner-gmv').innerText = '$' + (Number(data.total_market_gmv) / 1000000).toFixed(1) + 'M';
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Ticker en Vivo
+    async function loadLiveTicker() {
+      try {
+        const res = await fetch('/api/live-ticker?limit=15');
+        const data = await res.json();
+        const container = document.getElementById('ticker-track');
+        if (!data.events || data.events.length === 0) return;
+
+        const items = [...data.events, ...data.events];
+        container.innerHTML = items.map(e => `
+          <div onclick="openProductModal(${e.id})" class="inline-flex items-center gap-2 app-card hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl px-3 py-1 text-xs shrink-0 cursor-pointer transition">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[130px]">${e.name}</span>
+            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">+${e.units_sold}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Generar tarjeta de producto reutilizable con efecto cascada
+    function createProductCardHtml(p, index = 0) {
+      const isFav = watchlist.some(w => w.id === p.id);
+      const isComparing = compareList.some(c => c.id === p.id);
+      const delay = Math.min((index % 24) * 0.04, 0.8); // Cascada fluida escalonada
+      
+      const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(p.name)}&search_type=keyword_unordered&media_type=all`;
+      const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(p.name)}`;
+      const googleTrendsUrl = `https://trends.google.com/trends/explore?geo=CO&q=${encodeURIComponent(p.name)}`;
+      const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(p.image_url)}`;
+
+      // Badge de Escala Dinámico
+      let scaleBadge = '';
+      if (p.badge_type === 'ESCALANDO') {
+        scaleBadge = `<span class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"><i class="fa-solid fa-rocket"></i> ESCALANDO</span>`;
+      } else if (p.badge_type === 'CONSOLIDADO') {
+        scaleBadge = `<span class="bg-indigo-600 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"><i class="fa-solid fa-fire text-amber-300"></i> CONSOLIDADO</span>`;
+      } else if (p.badge_type === 'JOYA OCULTA') {
+        scaleBadge = `<span class="bg-purple-600 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"><i class="fa-solid fa-gem text-purple-200"></i> JOYA +$50K</span>`;
+      }
+
+      return `
+        <div class="app-card cascade-item rounded-2xl overflow-hidden flex flex-col group relative transition-colors" style="animation-delay: ${delay}s">
+          
+          <!-- Imagen & Badges -->
+          <div class="relative w-full h-52 bg-slate-50 dark:bg-slate-900/50 overflow-hidden flex items-center justify-center border-b border-inherit cursor-pointer" onclick="openProductModal(${p.id})">
+            <img 
+              src="${p.image_url}" 
+              alt="${p.name}" 
+              class="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
+              onerror="this.onerror=null; this.src='https://placehold.co/400x300/f8fafc/94a3b8?text=Dropi'"
+              loading="lazy"
+            >
+            
+            <div class="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
+              ${scaleBadge}
+              <span class="bg-white/95 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-md shadow-xs">
+                ${p.category || 'General'}
+              </span>
+            </div>
+
+            <!-- Acciones Top Right: Favorito & Comparar -->
+            <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10" onclick="event.stopPropagation()">
+              <button onclick="toggleCompare(${p.id})" class="w-7 h-7 rounded-lg bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isComparing ? 'text-indigo-600 font-bold border-indigo-500' : 'text-slate-400 hover:text-indigo-600'} transition" title="Comparar producto">
+                <i class="fa-solid fa-code-compare"></i>
+              </button>
+              <button onclick="toggleFavorite(${p.id})" class="w-7 h-7 rounded-lg bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isFav ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'} transition" title="Guardar en Testeo">
+                <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Contenido -->
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between text-xs mb-2">
+                <span class="truncate max-w-[140px] text-slate-400 font-medium">
+                  <i class="fa-solid fa-truck mr-1 text-[11px]"></i>${p.supplier_name || 'Proveedor'}
+                </span>
+                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  ${(p.supplier_tier || 'VERIFICADO').replace('PREMIUM ', '')}
+                </span>
+              </div>
+
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition mb-3 leading-snug" onclick="openProductModal(${p.id})">
+                ${p.name}
+              </h3>
+
+              <!-- Tarjeta de Números -->
+              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-inherit mb-3 font-mono">
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
+                  <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+                </div>
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Margen Neto</span>
+                  <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
+                </div>
+              </div>
+
+              <!-- Kalodata & Dropdata Benchmarks (GMV, Ventas & CPA) -->
+              <div class="space-y-1.5 mb-3 pb-3 border-b border-inherit text-xs font-mono">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 text-[11px] font-sans">GMV Facturado:</span>
+                  <span class="font-bold text-emerald-600 dark:text-emerald-400">
+                    $${(Number(p.estimated_gmv || (p.units_sold * (p.suggested_price || p.sale_price))) / 1000000).toFixed(1)}M COP
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 text-[11px] font-sans">Ventas Totales:</span>
+                  <span class="font-bold ${p.units_sold > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'} flex items-center gap-1">
+                    <i class="fa-solid fa-bolt text-amber-500 text-[10px]"></i>
+                    ${Number(p.units_sold).toLocaleString('es-CO')} unds
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 text-[11px] font-sans">Target CPA Ads:</span>
+                  <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                    Max $${Number(p.target_cpa || Math.max(Math.round(p.margin * 0.35), 12000)).toLocaleString('es-CO')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botones Espía Multi-Plataforma -->
+            <div class="space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <a 
+                  href="${metaUrl}" 
+                  target="_blank" 
+                  class="flex items-center justify-center gap-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 text-blue-600 dark:text-blue-400 hover:text-white text-xs font-semibold py-2 rounded-xl border border-blue-200 dark:border-blue-900/50 hover:border-blue-600 transition"
+                  title="Ver anuncios en Meta Ads"
+                >
+                  <i class="fa-brands fa-meta text-xs"></i>
+                  Meta Ads
+                </a>
+
+                <button 
+                  onclick="openProductModal(${p.id})"
+                  class="flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-600 text-indigo-700 dark:text-indigo-300 hover:text-white text-xs font-semibold py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 hover:border-indigo-600 transition"
+                >
+                  <i class="fa-solid fa-chart-line text-xs"></i>
+                  Ventas Diarias
+                </button>
+              </div>
+
+              <!-- Espías Rápidos Auxiliares (TikTok, Trends, Lens) -->
+              <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
+                <span>Espiar en:</span>
+                <div class="flex items-center gap-2.5">
+                  <a href="${tiktokUrl}" target="_blank" class="hover:text-black dark:hover:text-white transition" title="Buscar videos en TikTok">
+                    <i class="fa-brands fa-tiktok"></i> TikTok
+                  </a>
+                  <span>•</span>
+                  <a href="${googleTrendsUrl}" target="_blank" class="hover:text-blue-500 transition" title="Tendencias Google Colombia">
+                    <i class="fa-brands fa-google"></i> Trends
+                  </a>
+                  <span>•</span>
+                  <a href="${lensUrl}" target="_blank" class="hover:text-amber-500 transition" title="Buscar precio fábrica en Google Lens">
+                    <i class="fa-solid fa-magnifying-glass-arrow-right"></i> Lens
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    // Cargar Catálogo Radar
+    async function loadProducts() {
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = `
+        <div class="col-span-full py-24 text-center text-slate-400">
+          <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
+          <p class="text-sm">Analizando catálogo y métricas...</p>
+        </div>
+      `;
+
+      try {
+        const url = `/api/products?category=${encodeURIComponent(currentCategory)}&tier=${encodeURIComponent(currentTier)}&min_margin=${currentMargin}&sort_by=${currentSort}&search=${encodeURIComponent(searchQuery)}&limit=60`;
+        const res = await fetch(url);
+        const data = await res.json();
+        cachedProducts = data.products || [];
+
+        let filtered = cachedProducts;
+        if (currentBadge !== 'all') {
+          filtered = filtered.filter(p => p.badge_type === currentBadge);
+        }
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div class="col-span-full py-20 text-center app-card rounded-2xl">
+              <i class="fa-solid fa-box-open text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
+              <p class="text-base text-slate-800 dark:text-white font-bold">No se encontraron productos</p>
+              <p class="text-xs text-slate-500 mt-1">Prueba cambiando los filtros o buscando otra palabra clave.</p>
+            </div>
+          `;
+          return;
+        }
+
+        grid.innerHTML = filtered.map((p, i) => createProductCardHtml(p, i)).join('');
+      } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-rose-500">Error al cargar productos.</div>`;
+      }
+    }
+
+    // ================= SECCION KALODATA & DROPDATA LEADERBOARD =================
+    let cachedLeaderboard = [];
+    let currentLeaderboardFilter = 'all';
+
+    async function loadLeaderboard() {
+      const tbody = document.getElementById('leaderboard-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="9" class="py-16 text-center text-slate-400">
+            <i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-600 mb-2"></i>
+            <p>Calculando GMV y ranking de velocidad...</p>
+          </td>
+        </tr>
+      `;
+
+      try {
+        const res = await fetch('/api/leaderboard?limit=50');
+        const data = await res.json();
+        cachedLeaderboard = data.leaderboard || [];
+
+        if (cachedLeaderboard.length > 0) {
+          const top1 = cachedLeaderboard[0];
+          document.getElementById('kalo-top1-gmv').innerText = '$' + (Number(top1.gmv) / 1000000).toFixed(1) + 'M';
+          const avgCpa = Math.round(cachedLeaderboard.reduce((acc, cur) => acc + (cur.target_cpa || 15000), 0) / cachedLeaderboard.length);
+          document.getElementById('kalo-avg-cpa').innerText = '$' + avgCpa.toLocaleString('es-CO');
+        }
+
+        renderLeaderboardTable(cachedLeaderboard);
+      } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-rose-500">Error al cargar el Leaderboard.</td></tr>`;
+      }
+    }
+
+    function renderLeaderboardTable(items) {
+      const tbody = document.getElementById('leaderboard-tbody');
+      let filtered = items;
+      if (currentLeaderboardFilter !== 'all') {
+        filtered = filtered.filter(item => item.tier_label === currentLeaderboardFilter);
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="py-12 text-center text-slate-400">
+              No se encontraron productos en esta categoría del Leaderboard.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const isFav = watchlist.some(w => w.id === item.id);
+        const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(item.name)}&search_type=keyword_unordered&media_type=all`;
+        const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(item.name)}`;
+
+        // Icono de medalla para podio Kalodata
+        let rankBadge = `<span class="font-mono font-bold text-slate-400 text-sm">#${item.rank}</span>`;
+        if (item.rank === 1) rankBadge = `<span class="text-xl" title="Top 1 Absoluto">🥇</span>`;
+        else if (item.rank === 2) rankBadge = `<span class="text-xl" title="Top 2">🥈</span>`;
+        else if (item.rank === 3) rankBadge = `<span class="text-xl" title="Top 3">🥉</span>`;
+
+        return `
+          <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+            <!-- Rank -->
+            <td class="py-3 px-4 text-center font-bold">
+              ${rankBadge}
+            </td>
+
+            <!-- Producto & Proveedor -->
+            <td class="py-3 px-4">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border border-inherit p-1 shrink-0 flex items-center justify-center cursor-pointer" onclick="openProductModal(${item.id})">
+                  <img src="${item.image_url}" alt="${item.name}" class="w-full h-full object-contain" onerror="this.onerror=null; this.src='https://placehold.co/100/f8fafc/94a3b8?text=Dropi'" loading="lazy">
+                </div>
+                <div class="min-w-0 max-w-xs">
+                  <div class="font-bold text-slate-900 dark:text-white truncate hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer" onclick="openProductModal(${item.id})" title="${item.name}">
+                    ${item.name}
+                  </div>
+                  <div class="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                    <span class="px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">${item.category || 'General'}</span>
+                    <span>•</span>
+                    <span class="truncate max-w-[120px]"><i class="fa-solid fa-truck text-[9px] mr-0.5"></i>${item.supplier_name}</span>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- GMV Estimado -->
+            <td class="py-3 px-4 text-right font-mono">
+              <div class="font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                $${(Number(item.gmv) / 1000000).toFixed(1)}M
+              </div>
+              <div class="text-[10px] text-slate-400 font-sans">Facturación COP</div>
+            </td>
+
+            <!-- Unidades Vendidas -->
+            <td class="py-3 px-4 text-right font-mono">
+              <div class="font-bold text-slate-900 dark:text-white text-xs">
+                ${Number(item.total_sold).toLocaleString('es-CO')}
+              </div>
+              <div class="text-[10px] text-slate-400 font-sans">${item.sales_velocity} rotaciones</div>
+            </td>
+
+            <!-- Margen Neto & ROI -->
+            <td class="py-3 px-4 text-right font-mono">
+              <div class="font-extrabold text-indigo-600 dark:text-indigo-400 text-xs">
+                +$${Number(item.margin).toLocaleString('es-CO')}
+              </div>
+              <div class="text-[10px] text-emerald-500 font-bold font-sans">+${item.roi_percent}% ROI</div>
+            </td>
+
+            <!-- Benchmark CPA & ROAS -->
+            <td class="py-3 px-4 text-center font-mono">
+              <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                Max $${Number(item.target_cpa).toLocaleString('es-CO')}
+              </div>
+              <div class="text-[10px] text-indigo-500 font-semibold font-sans">Min ${item.target_roas}x ROAS</div>
+            </td>
+
+            <!-- Riesgo Devolución -->
+            <td class="py-3 px-4 text-center">
+              <span class="text-[11px] font-semibold ${item.risk_color}">
+                ${item.return_risk}
+              </span>
+            </td>
+
+            <!-- Momentum -->
+            <td class="py-3 px-4 text-center">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.tier_color}">
+                ${item.growth_badge}
+              </span>
+            </td>
+
+            <!-- Acciones -->
+            <td class="py-3 px-4 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button onclick="openProductModal(${item.id})" class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition" title="Ver Ventas Diarias">
+                  <i class="fa-solid fa-chart-line text-xs"></i>
+                </button>
+                <a href="${metaUrl}" target="_blank" class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Ver Meta Ads">
+                  <i class="fa-brands fa-meta text-xs"></i>
+                </a>
+                <a href="${tiktokUrl}" target="_blank" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-black hover:text-white flex items-center justify-center transition" title="Buscar en TikTok">
+                  <i class="fa-brands fa-tiktok text-xs"></i>
+                </a>
+                <button onclick="toggleFavorite(${item.id})" class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 ${isFav ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'} flex items-center justify-center transition" title="Guardar en Testeo">
+                  <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-star text-xs"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterLeaderboard(tier) {
+      currentLeaderboardFilter = tier;
+      document.querySelectorAll('.kalo-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white', 'active');
+        btn.classList.add('text-slate-600', 'dark:text-slate-300');
+      });
+      event.target.classList.remove('text-slate-600', 'dark:text-slate-300');
+      event.target.classList.add('bg-indigo-600', 'text-white', 'active');
+      renderLeaderboardTable(cachedLeaderboard);
+    }
+
+    function exportLeaderboardCsv() {
+      if (cachedLeaderboard.length === 0) return alert('No hay datos en el Leaderboard.');
+      let csv = "Rank,ID,Nombre,Categoria,Proveedor,GMV_COP,Unidades_Vendidas,Margen_COP,Target_CPA_COP,Target_ROAS,Tier\n";
+      cachedLeaderboard.forEach(item => {
+        const cleanName = (item.name || '').replace(/,/g, ' ');
+        csv += `${item.rank},${item.id},"${cleanName}",${item.category},${item.supplier_name},${item.gmv},${item.total_sold},${item.margin},${item.target_cpa},${item.target_roas},${item.tier_label}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kalodata_leaderboard_dropi_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    // Watchlist / Favoritos
+    function updateFavBadge() {
+      document.getElementById('fav-count-badge').innerText = watchlist.length;
+    }
+    updateFavBadge();
+
+    function toggleFavorite(productId) {
+      const idx = watchlist.findIndex(w => w.id === productId);
+      if (idx >= 0) {
+        watchlist.splice(idx, 1);
+      } else {
+        const p = cachedProducts.find(x => x.id === productId);
+        if (p) watchlist.push(p);
+      }
+      localStorage.setItem('dropispy_watchlist', JSON.stringify(watchlist));
+      updateFavBadge();
+      loadProducts();
+      if (!document.getElementById('view-watchlist').classList.contains('hidden')) {
+        renderWatchlist();
+      }
+    }
+
+    function renderWatchlist() {
+      const grid = document.getElementById('watchlist-grid');
+      if (watchlist.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full py-20 text-center app-card rounded-2xl">
+            <i class="fa-regular fa-star text-4xl mb-3 text-amber-400"></i>
+            <p class="text-base font-bold text-slate-800 dark:text-white">Aún no tienes productos en tu lista de testeo</p>
+            <p class="text-xs text-slate-500 mt-1">Haz clic en la estrella de cualquier producto para guardarlo aquí y exportarlo.</p>
+          </div>
+        `;
+        return;
+      }
+      grid.innerHTML = watchlist.map((p, i) => createProductCardHtml(p, i)).join('');
+    }
+
+    function clearWatchlist() {
+      if (confirm('¿Vaciar tu lista de testeo?')) {
+        watchlist = [];
+        localStorage.removeItem('dropispy_watchlist');
+        updateFavBadge();
+        renderWatchlist();
+      }
+    }
+
+    function exportWatchlistCsv() {
+      if (watchlist.length === 0) return alert('No hay productos en tu lista para exportar.');
+      let csv = "ID,Nombre,Categoria,Proveedor,Tier,Costo_Dropi,PVP_Sugerido,Margen_COP,Ventas_Auditadas\n";
+      watchlist.forEach(p => {
+        const cleanName = (p.name || '').replace(/,/g, ' ');
+        csv += `${p.id},"${cleanName}",${p.category},${p.supplier_name},${p.supplier_tier},${p.sale_price},${p.suggested_price},${p.margin},${p.units_sold}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dropispy_lista_testeo_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    // Comparador Side-by-Side
+    function toggleCompare(productId) {
+      const idx = compareList.findIndex(c => c.id === productId);
+      if (idx >= 0) {
+        compareList.splice(idx, 1);
+      } else {
+        if (compareList.length >= 3) return alert('Puedes comparar hasta 3 productos al mismo tiempo.');
+        const p = cachedProducts.find(x => x.id === productId);
+        if (p) compareList.push(p);
+      }
+      updateCompareBar();
+      loadProducts();
+    }
+
+    function updateCompareBar() {
+      const bar = document.getElementById('compare-bar');
+      if (compareList.length > 0) {
+        bar.classList.remove('hidden');
+        document.getElementById('compare-count-text').innerText = `${compareList.length} seleccionado(s) para comparar`;
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    function clearCompare() {
+      compareList = [];
+      updateCompareBar();
+      loadProducts();
+    }
+
+    function openCompareModal() {
+      if (compareList.length === 0) return;
+      const modal = document.getElementById('compare-modal');
+      const grid = document.getElementById('compare-grid');
+      modal.classList.remove('hidden');
+
+      grid.innerHTML = compareList.map(p => `
+        <div class="app-card rounded-2xl p-4 border flex flex-col justify-between">
+          <div>
+            <div class="w-full h-44 bg-slate-50 dark:bg-slate-900 rounded-xl p-3 flex items-center justify-center mb-3">
+              <img src="${p.image_url}" class="w-full h-full object-contain">
+            </div>
+            <span class="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">${p.category || 'General'}</span>
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 mt-1 mb-3">${p.name}</h4>
+
+            <div class="space-y-2 text-xs font-mono">
+              <div class="flex justify-between pb-1 border-b border-inherit">
+                <span class="text-slate-400 font-sans">Costo Dropi:</span>
+                <span class="font-bold">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+              </div>
+              <div class="flex justify-between pb-1 border-b border-inherit">
+                <span class="text-slate-400 font-sans">Margen Neto:</span>
+                <span class="font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
+              </div>
+              <div class="flex justify-between pb-1 border-b border-inherit">
+                <span class="text-slate-400 font-sans">Ventas Totales:</span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400">${Number(p.units_sold).toLocaleString('es-CO')} unds</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400 font-sans">Proveedor:</span>
+                <span class="truncate max-w-[120px] font-sans text-slate-700 dark:text-slate-300">${p.supplier_name}</span>
+              </div>
+            </div>
+          </div>
+
+          <a href="https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(p.name)}&search_type=keyword_unordered&media_type=all" target="_blank" class="mt-4 w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl transition">
+            <i class="fa-brands fa-meta mr-1"></i> Ver Anuncios
+          </a>
+        </div>
+      `).join('');
+    }
+
+    function closeCompareModal() {
+      document.getElementById('compare-modal').classList.add('hidden');
+    }
+
+    // Top Proveedores
+    async function loadSuppliers() {
+      const container = document.getElementById('suppliers-container');
+      container.innerHTML = `<div class="col-span-full py-16 text-center text-slate-400"><i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-600"></i></div>`;
+
+      try {
+        const res = await fetch('/api/suppliers');
+        const data = await res.json();
+        
+        container.innerHTML = data.suppliers.map(s => `
+          <div class="app-card rounded-2xl p-5 border flex flex-col justify-between hover:border-indigo-500/50 transition">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase">
+                  ${s.supplier_tier}
+                </span>
+                <span class="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 px-2 py-0.5 rounded">
+                  ${Number(s.total_units_sold).toLocaleString('es-CO')} ventas
+                </span>
+              </div>
+
+              <h4 class="text-base font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-warehouse text-slate-400 text-sm"></i>
+                ${s.supplier_name}
+              </h4>
+              <p class="text-xs text-slate-400 mb-4">Tienda: ${s.store_name || s.supplier_name}</p>
+
+              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit text-xs font-mono">
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-semibold">Productos en Catálogo</span>
+                  <span class="font-bold text-slate-800 dark:text-slate-200">${s.total_products} items</span>
+                </div>
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-semibold">Margen Promedio</span>
+                  <span class="font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(s.avg_margin).toLocaleString('es-CO')}</span>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="filterBySupplier('${s.supplier_name}')" class="mt-4 w-full bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-700 dark:text-slate-300 text-xs font-semibold py-2 rounded-xl transition">
+              Ver Catálogo del Proveedor
+            </button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function filterBySupplier(name) {
+      switchView('radar');
+      searchQuery = name;
+      document.getElementById('search-input').value = name;
+      loadProducts();
+    }
+
+    // Modal Detalle con Ventas por DÍA SEPARADO
+    async function openProductModal(productId) {
+      const modal = document.getElementById('product-modal');
+      const content = document.getElementById('modal-content');
+      modal.classList.remove('hidden');
+      content.innerHTML = `<div class="text-center py-16"><i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600"></i></div>`;
+
+      try {
+        const res = await fetch(`/api/product/${productId}`);
+        const data = await res.json();
+        const p = data.product;
+        const metaAdUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(p.name)}&search_type=keyword_unordered&media_type=all`;
+
+        // Filas de la tabla de días individuales
+        const dailyRowsHtml = data.daily_sales.map(d => `
+          <tr class="border-b border-inherit text-xs">
+            <td class="py-2.5 font-mono text-slate-600 dark:text-slate-400">${d.sale_date}</td>
+            <td class="py-2.5 font-bold font-mono text-emerald-600 dark:text-emerald-400 text-right">+${d.daily_units} unds</td>
+            <td class="py-2.5 font-mono text-slate-400 text-right">${d.events_count} reducciones</td>
+          </tr>
+        `).join('');
+
+        content.innerHTML = `
+          <div class="flex flex-col md:flex-row gap-6 mb-6">
+            <div class="w-full md:w-48 h-48 bg-slate-50 dark:bg-slate-900 rounded-2xl p-3 flex items-center justify-center border border-inherit shrink-0">
+              <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-contain">
+            </div>
+
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 uppercase">${p.supplier_tier || 'VERIFICADO'}</span>
+                <span class="text-xs text-slate-400 font-mono">ID: ${p.id}</span>
+                <span class="text-xs text-slate-400">| ${p.category || 'General'}</span>
+              </div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white mb-2 leading-snug">${p.name}</h2>
+              <p class="text-xs text-slate-500 mb-3">Proveedor: <strong class="text-slate-800 dark:text-slate-200">${p.supplier_name || 'N/A'}</strong></p>
+
+              <div class="grid grid-cols-3 gap-2.5 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit text-center font-mono">
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
+                  <span class="text-xs font-bold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+                </div>
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Total Acumulado</span>
+                  <span class="text-xs font-black text-emerald-600 dark:text-emerald-400">${Number(data.total_units_sold).toLocaleString('es-CO')} unds</span>
+                </div>
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Margen Neto</span>
+                  <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gráfica de Ventas Por DÍA INDEPENDIENTE (Barras) -->
+          <div class="app-card bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border mb-5">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <i class="fa-solid fa-chart-column text-indigo-600"></i> Ventas Exactas Por Cada Día
+                </h4>
+                <p class="text-[11px] text-slate-400">Muestra el volumen diario individual (sin acumular el día anterior)</p>
+              </div>
+              <div class="text-right">
+                <span class="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">
+                  Semana: ${Number(data.week_sales).toLocaleString('es-CO')} unds
+                </span>
+              </div>
+            </div>
+            <div class="h-48">
+              <canvas id="dailySalesChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Tabla Detallada Día a Día -->
+          <div class="app-card rounded-xl p-3 border mb-5 overflow-hidden">
+            <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Desglose Cronológico de Ventas:</div>
+            <div class="max-h-36 overflow-y-auto custom-scrollbar">
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="text-[10px] text-slate-400 uppercase border-b border-inherit">
+                    <th class="pb-1.5 font-bold">Fecha</th>
+                    <th class="pb-1.5 font-bold text-right">Ventas del Día</th>
+                    <th class="pb-1.5 font-bold text-right">Eventos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${dailyRowsHtml || '<tr><td colspan="3" class="py-3 text-center text-xs text-slate-400">Sin historial registrado</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3">
+            <button onclick="closeProductModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 transition">
+              Cerrar
+            </button>
+            <a href="${metaAdUrl}" target="_blank" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 shadow-sm transition">
+              <i class="fa-brands fa-meta"></i> Ver Anuncios en Meta Ads
+            </a>
+          </div>
+        `;
+
+        if (currentChart) currentChart.destroy();
+        const ctx = document.getElementById('dailySalesChart').getContext('2d');
+        const isDark = document.documentElement.classList.contains('dark');
+        
+        const labels = data.daily_sales.map(d => d.sale_date.slice(5)); // 'MM-DD'
+        const barData = data.daily_sales.map(d => d.daily_units);
+
+        // Degradado profesional estilo Kalodata / TradingView
+        const gradient = ctx.createLinearGradient(0, 0, 0, 180);
+        gradient.addColorStop(0, isDark ? 'rgba(99, 102, 241, 0.45)' : 'rgba(79, 70, 229, 0.25)');
+        gradient.addColorStop(1, isDark ? 'rgba(99, 102, 241, 0.0)' : 'rgba(79, 70, 229, 0.0)');
+
+        currentChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels.length ? labels : ['Sin datos'],
+            datasets: [{
+              label: 'Ventas del Día',
+              data: barData.length ? barData : [0],
+              borderColor: '#6366F1',
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: '#6366F1',
+              pointBorderColor: isDark ? '#131B2E' : '#FFFFFF',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 7,
+              borderWidth: 2.5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: isDark ? '#0F172A' : '#1E293B',
+                titleColor: '#F8FAFC',
+                bodyColor: '#F8FAFC',
+                padding: 10,
+                borderRadius: 8,
+                callbacks: {
+                  label: function(ctx) { return `Ventas este día: ${ctx.parsed.y} unds`; }
+                }
+              }
+            },
+            scales: {
+              x: { 
+                grid: { color: isDark ? '#1E293B' : '#E2E8F0' }, 
+                ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10 } } 
+              },
+              y: { 
+                beginAtZero: true,
+                grid: { color: isDark ? '#1E293B' : '#E2E8F0' }, 
+                ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10 } } 
+              }
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error(err);
+        content.innerHTML = `<div class="py-8 text-center text-rose-500">Error al cargar detalle.</div>`;
+      }
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').classList.add('hidden');
+      if (currentChart) currentChart.destroy();
+    }
+
+    // Calculadora ROI
+    function openRoiModal() {
+      document.getElementById('roi-modal').classList.remove('hidden');
+      updateRoiCalc();
+    }
+    function closeRoiModal() {
+      document.getElementById('roi-modal').classList.add('hidden');
+    }
+
+    function updateRoiCalc() {
+      const price = parseFloat(document.getElementById('calc-price').value) || 0;
+      const cost = parseFloat(document.getElementById('calc-cost').value) || 0;
+      const shipping = parseFloat(document.getElementById('calc-shipping').value) || 0;
+      const cpa = parseFloat(document.getElementById('calc-cpa').value) || 0;
+      const returnRate = (parseFloat(document.getElementById('calc-returns').value) || 0) / 100;
+
+      const gross = price - cost;
+      const effectiveShipping = shipping * (1 + returnRate);
+      const totalCost = cost + effectiveShipping + cpa;
+      const netProfit = price - totalCost;
+
+      document.getElementById('calc-gross').innerText = '$' + Math.round(gross).toLocaleString('es-CO') + ' COP';
+      document.getElementById('calc-total-cost').innerText = '$' + Math.round(totalCost).toLocaleString('es-CO') + ' COP';
+      
+      const netElem = document.getElementById('calc-net');
+      netElem.innerText = (netProfit >= 0 ? '+' : '') + '$' + Math.round(netProfit).toLocaleString('es-CO') + ' COP';
+      netElem.className = 'text-xl font-bold font-mono ' + (netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600');
+    }
+
+    ['calc-price', 'calc-cost', 'calc-shipping', 'calc-cpa', 'calc-returns'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateRoiCalc);
+    });
+
+    function setCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-pill').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('text-slate-600', 'dark:text-slate-300');
+      });
+      event.target.classList.remove('text-slate-600', 'dark:text-slate-300');
+      event.target.classList.add('bg-indigo-600', 'text-white');
+      loadProducts();
+    }
+
+    document.getElementById('tier-select').addEventListener('change', (e) => {
+      currentTier = e.target.value;
+      loadProducts();
+    });
+
+    document.getElementById('margin-select').addEventListener('change', (e) => {
+      currentMargin = parseFloat(e.target.value) || 0;
+      loadProducts();
+    });
+
+    document.getElementById('badge-select').addEventListener('change', (e) => {
+      currentBadge = e.target.value;
+      loadProducts();
+    });
+
+    document.getElementById('sort-select').addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      loadProducts();
+    });
+
+    let debounceTimer;
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        searchQuery = e.target.value.trim();
+        loadProducts();
+      }, 300);
+    });
+
+    loadStats();
+    loadLiveTicker();
+    loadProducts();
+
+    setInterval(() => {
+      loadStats();
+      loadLiveTicker();
+    }, 30000);
+  </script>
+</body>
+</html>

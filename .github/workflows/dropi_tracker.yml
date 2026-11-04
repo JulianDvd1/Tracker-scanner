@@ -1,22 +1,17 @@
-name: Dropi Matrix Scanner 4X
+name: Dropi Master Scanner (32k Productos)
 
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 */3 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  scrape:
-    name: Worker ${{ matrix.worker_id }} / 4
+  scrape_and_release:
+    name: Escáner Maestro 32.000 Productos
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        worker_id: [1, 2, 3, 4]
-    
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -29,53 +24,24 @@ jobs:
       - name: Instalar dependencias
         run: pip install aiohttp
 
-      - name: Ejecutar Turbo Worker #${{ matrix.worker_id }}
+      - name: Ejecutar Escáner Continuo (800 Páginas)
         env:
-          DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
-          DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
-          DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
-          DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
+          DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --worker-id ${{ matrix.worker_id }} --total-workers 4 --total-pages 750
+          python cloud_worker.py --pages 800
 
-      - name: Subir artefacto parcial
-        uses: actions/upload-artifact@v4
-        with:
-          name: worker_data_${{ matrix.worker_id }}
-          path: worker_data_${{ matrix.worker_id }}.db
-          retention-days: 1
-
-  merge:
-    name: Fusionar y Publicar Catálogo
-    needs: scrape
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Instalar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Descargar todos los artefactos
-        uses: actions/download-artifact@v4
-        with:
-          path: downloaded_artifacts
-
-      - name: Ejecutar fusión inteligente
+      - name: Comprimir Catálogo
         run: |
-          python cloud_merge.py
+          zip -9 catalog.db.zip catalog.db
 
-      - name: Crear Release con Catálogo Consolidado
+      - name: Publicar Release con Catálogo Consolidado
         uses: softprops/action-gh-release@v2
         if: success()
         with:
           tag_name: "v1.0-data"
           name: "Catálogo Dropi Colombia Automatizado"
-          body: "Base de datos SQLite consolidada con los 30.000 productos auditados de Dropi Colombia."
+          body: "Base de datos consolidada con 32.000 productos auditados de Dropi Colombia."
           files: catalog.db.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
