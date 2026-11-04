@@ -81,7 +81,7 @@ def init_db(db_path: str):
     conn.commit()
     conn.close()
 
-async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: List[str], token_state: List[int]) -> List[Dict[str, Any]]:
+async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str) -> List[Dict[str, Any]]:
     payload = {
         "startData": start_data,
         "pageSize": PAGE_SIZE,
@@ -94,17 +94,17 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: Li
         "userVerified": True
     }
 
-    # Ritmo continuo entre peticiones (3.0s exactos)
+    # Ritmo continuo (3.0s exactos)
     await asyncio.sleep(3.0)
 
-    max_attempts = max(3, len(tokens) + 1)
+    headers = {
+        "Content-Type": "application/json;charset=UTF-8",
+        "dropi-integration-key": token,
+        "User-Agent": random.choice(USER_AGENTS)
+    }
+
+    max_attempts = 4
     for attempt in range(1, max_attempts + 1):
-        token = tokens[token_state[0] % len(tokens)]
-        headers = {
-            "Content-Type": "application/json;charset=UTF-8",
-            "dropi-integration-key": token,
-            "User-Agent": random.choice(USER_AGENTS)
-        }
         try:
             async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
                 if resp.status == 200:
@@ -113,16 +113,9 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: Li
                         return data.get("objects", [])
                     return []
                 elif resp.status == 429:
-                    # 1. Si tenemos múltiples tokens, rotamos primero
-                    if len(tokens) > 1 and attempt < len(tokens):
-                        token_state[0] = (token_state[0] + 1) % len(tokens)
-                        print(f" [429] Rotando a Token #{token_state[0] + 1} de {len(tokens)} sin esperar...", flush=True)
-                        await asyncio.sleep(1.0)
-                        continue
-                    
-                    # 2. Pausa directa de 62.0s (la ventana exacta de reseteo de Dropi)
-                    print(f" [429 Rate-Limit] Pausa directa de 62.0s (reseteo de ventana Dropi)...", flush=True)
-                    await asyncio.sleep(62.0)
+                    # Silencio absoluto de 65s (permite que la IP de Azure se descongele sin hacer ruido)
+                    print(f" [429 Rate-Limit] Silencio absoluto de 65s para enfriar firewall...", flush=True)
+                    await asyncio.sleep(65.0)
                 else:
                     await asyncio.sleep(1.5)
         except Exception as e:
@@ -131,13 +124,13 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, tokens: Li
             await asyncio.sleep(2)
     return []
 
-async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 800):
-    tokens = get_tokens(worker_id)
-    if not tokens:
-        print(f" ERROR: Ningún token configurado para Worker #{worker_id}.", flush=True)
+async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 25):
+    token = os.getenv("DROPI_TOKEN_1") or os.getenv("DROPI_TOKEN") or ""
+    token = token.strip().strip('"').strip("'")
+    if not token:
+        print(f" ERROR: Token para Dropi no configurado.", flush=True)
         sys.exit(1)
 
-    token_state = [0]
     pages_per_worker = total_pages // total_workers
     start_page = ((worker_id - 1) * pages_per_worker) + 1
     end_page = start_page + pages_per_worker - 1
@@ -152,23 +145,23 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
     total_prods_assigned = (end_page - start_page + 1) * PAGE_SIZE
     print(f"\n=======================================================", flush=True)
     if total_workers == 1:
-        print(f" ESCÁNER MAESTRO DROPI COLOMBIA INICIADO (1 WORKER CONTINUO)", flush=True)
+        print(f" ESCÁNER MAESTRO DROPI COLOMBIA INICIADO (1 WORKER ESTABLE)", flush=True)
     else:
         print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
     print(f" - Destino BD: {db_filename}", flush=True)
-    print(f" - Tokens disponibles para rotación: {len(tokens)}", flush=True)
+    print(f" - Token: Configurado y estable (Cero ráfagas de prueba)", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
-    print(f" - Ritmo calibrado: 1 petición cada 3.0s | Pausa directa 429: 62.0s exactos", flush=True)
+    print(f" - Ritmo seguro: 1 petición cada 3.0s | Silencio en 429: 65.0s directos", flush=True)
     print(f"=======================================================\n", flush=True)
 
     saved_count = 0
     start_time = time.time()
 
     conn_tcp = aiohttp.TCPConnector(limit=3, ssl=False)
-    async with aiohttp.ClientSession(connector=connector if 'connector' in locals() else conn_tcp) as session:
+    async with aiohttp.ClientSession(connector=conn_tcp) as session:
         for page in range(start_page, end_page + 1):
             start_data = (page - 1) * PAGE_SIZE
-            objects = await fetch_page(session, start_data, tokens, token_state)
+            objects = await fetch_page(session, start_data, token)
 
             if not objects:
                 continue
@@ -203,6 +196,10 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
                 margin = sug_price - sale_price
 
                 if margin < MIN_MARGIN:
+                    continue
+
+                # Sanitizar errores tipográficos de proveedores en Dropi (ej. patillera de 35k con sugerido 80M)
+                if (sale_price < 200000 and sug_price > sale_price * 5) or (sug_price > sale_price * 10) or sug_price > 10000000:
                     continue
 
                 warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []

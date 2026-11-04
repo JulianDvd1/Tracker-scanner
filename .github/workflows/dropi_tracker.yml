@@ -1,21 +1,26 @@
-name: Dropi Master Scanner (32k Productos)
+name: Dropi Master Scanner (Cloud Tracker)
 
 on:
   schedule:
     # 4 veces al día (Hora Colombia UTC-5):
     # 09:00 UTC = 04:00 AM Colombia
-    # 15:00 UTC = 10:00 AM Colombia
-    # 19:00 UTC = 02:00 PM Colombia
-    # 23:00 UTC = 06:00 PM Colombia
-    - cron: '0 9,15,19,23 * * *'
+    # 16:00 UTC = 11:00 AM Colombia
+    # 20:00 UTC = 03:00 PM Colombia
+    # 00:00 UTC = 07:00 PM Colombia
+    - cron: '0 0,9,16,20 * * *'
   workflow_dispatch:
+    inputs:
+      pages:
+        description: 'Cantidad de páginas a escanear (25 = ~1.000 prods de prueba | 1750 = ~70.000 prods)'
+        required: true
+        default: '25'
 
 permissions:
   contents: write
 
 jobs:
   scrape_and_release:
-    name: Escáner Maestro 32.000 Productos
+    name: Escáner Dropi Colombia
     runs-on: ubuntu-latest
     steps:
       - name: Checkout código
@@ -29,16 +34,12 @@ jobs:
       - name: Instalar dependencias
         run: pip install aiohttp
 
-      - name: Ejecutar Escáner Continuo (800 Páginas)
+      - name: Ejecutar Escáner Continuo
         env:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
-          DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 }}
-          DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
-          DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
-          DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --pages 800
+          python cloud_worker.py --pages ${{ github.event.inputs.pages || '25' }}
 
       - name: Comprimir Catálogo
         run: |
