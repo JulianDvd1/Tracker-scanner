@@ -22,11 +22,14 @@ MAX_COST = 350000    # Costo máximo ($350.000 COP) para dropshipping COD
 MAX_MARGIN = 180000  # Margen máximo ($180.000 COP) para filtrar maquinaria industrial
 PAGE_SIZE = 40       # Límite estricto de Dropi (40 productos por paquete)
 
+# Headers oficiales de la integración de WooCommerce / WordPress con Dropi.
+# La API /integrations/ de Dropi EXIGE un User-Agent de WordPress/WooCommerce;
+# cualquier User-Agent de navegador tradicional (Mozilla/Chrome) es rechazado con 401 Access denied.
 USER_AGENTS = [
     "DropiIntegration/2.4.0 (WordPress/6.4.3; WooCommerce/8.5.2)",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "WordPress/6.4; Dropify",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    "DropiIntegration/2.5.0 (WordPress/6.5.0; WooCommerce/8.6.0)",
+    "DropiIntegration/2.4.1 (WordPress/6.4.4; WooCommerce/8.5.3)",
+    "WordPress/6.4.3; WooCommerce/8.5.2; Dropify"
 ]
 
 def init_db(db_path: str):
