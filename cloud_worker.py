@@ -160,28 +160,39 @@ def fetch_page_gas(
                     try:
                         res_google = r.json()
                     except Exception as je:
-                        res_google = {"error": f"JSON parse error: {je}", "raw": r.text[:200]}
+                        res_google = {"error": f"JSON parse error: {je}", "body": r.text[:300], "status": 500}
 
+                    # Paso 1: Extraer status y body retornados por Google Apps Script
                     status_dropi = res_google.get("status")
-                    if status_dropi == 200:
-                        body = res_google.get("body", "{}")
-                        data_dropi = json.loads(body) if isinstance(body, str) else body
-                        if data_dropi.get("isSuccess"):
-                            objs = data_dropi.get("objects", [])
-                            if page <= 2:
-                                print(f" [GAS OK Pág {page}] Recibidos {len(objs)} productos desde Dropi.", flush=True)
-                            return objs
-                        else:
-                            if page <= 5:
-                                print(f" [AVISO Pág {page}] Dropi respondió isSuccess=False: {str(data_dropi)[:150]}", flush=True)
-                        return []
+                    body_str = res_google.get("body", "{}")
+
+                    # Paso 2: Convertir body en el diccionario real de Dropi
+                    try:
+                        data_dropi = json.loads(body_str) if isinstance(body_str, str) else body_str
+                    except Exception as pe:
+                        data_dropi = {"isSuccess": False, "parse_error": str(pe), "raw": str(body_str)[:300]}
+
+                    if not isinstance(data_dropi, dict):
+                        data_dropi = {"isSuccess": False, "raw": str(data_dropi)[:300]}
+
+                    raw_objects = data_dropi.get("objects", []) if isinstance(data_dropi, dict) else []
+
+                    # Log de diagnóstico visible en las primeras páginas
+                    if page <= 3:
+                        keys = list(data_dropi.keys()) if isinstance(data_dropi, dict) else type(data_dropi)
+                        print(f" [DEBUG Pág {page}] Status Dropi: {status_dropi} | isSuccess: {data_dropi.get('isSuccess')} | Keys: {keys} | Total brutos: {len(raw_objects)}", flush=True)
+                        if not data_dropi.get("isSuccess") or not raw_objects:
+                            print(f" [DEBUG Pág {page} DETALLE] Body Dropi: {str(body_str)[:300]}", flush=True)
+
+                    if status_dropi == 200 and data_dropi.get("isSuccess"):
+                        return raw_objects
                     elif status_dropi == 429:
                         # Dropi reportó 429 a través de Google Apps Script
                         time.sleep(random.uniform(3.0, 5.0))
                         continue
                     else:
                         if page <= 5 or attempt == max_retries:
-                            print(f" [GAS ERROR Pág {page}] Dropi Status: {status_dropi} | Error: {res_google.get('error')} | Body: {str(res_google.get('body') or res_google.get('raw'))[:150]}", flush=True)
+                            print(f" [GAS ERROR Pág {page}] Dropi Status: {status_dropi} | Err: {res_google.get('error')} | Body: {str(body_str)[:200]}", flush=True)
                         time.sleep(1.5)
                         continue
                 elif r.status_code == 429:
