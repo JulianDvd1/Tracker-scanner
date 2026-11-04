@@ -135,6 +135,12 @@
           <i class="fa-solid fa-calculator text-slate-400 w-4 text-center"></i>
           <span>Calculadora COD</span>
         </button>
+
+        <button onclick="syncCloudDb()" id="btn-sync-cloud" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 font-medium text-xs transition">
+          <i class="fa-solid fa-cloud-arrow-down text-indigo-500 w-4 text-center"></i>
+          <span>Sincronizar Nube</span>
+          <span class="ml-auto text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold px-1.5 py-0.2 rounded font-mono" id="sync-status-badge">AUTO</span>
+        </button>
       </div>
 
       <!-- Quick Niches -->
@@ -1513,6 +1519,31 @@
         loadProducts();
       }, 300);
     });
+
+    async function syncCloudDb() {
+      const badge = document.getElementById('sync-status-badge');
+      if (badge) {
+        badge.textContent = '...';
+        badge.className = 'ml-auto text-[9px] bg-amber-500/20 text-amber-600 font-bold px-1.5 py-0.2 rounded font-mono animate-pulse';
+      }
+      try {
+        const res = await fetch('/api/sync-cloud', { method: 'POST' });
+        const data = await res.json();
+        if (badge) {
+          badge.textContent = 'OK';
+          badge.className = 'ml-auto text-[9px] bg-emerald-500/20 text-emerald-600 font-bold px-1.5 py-0.2 rounded font-mono';
+          setTimeout(() => { badge.textContent = 'AUTO'; }, 3000);
+        }
+        loadStats();
+        loadProducts();
+        if (typeof loadLeaderboard === 'function') loadLeaderboard();
+      } catch (e) {
+        if (badge) {
+          badge.textContent = 'ERR';
+          badge.className = 'ml-auto text-[9px] bg-rose-500/20 text-rose-600 font-bold px-1.5 py-0.2 rounded font-mono';
+        }
+      }
+    }
 
     loadStats();
     loadLiveTicker();

@@ -1,6 +1,10 @@
 import os
 import sqlite3
 import datetime
+import urllib.request
+import zipfile
+import threading
+import time
 from typing import Optional, List
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
@@ -9,6 +13,52 @@ app = FastAPI(title="DropiSpy Elite Pro", version="3.5.0")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "catalog.db")
 CLOUDFRONT_BASE = "https://d39ru7awumhhs2.cloudfront.net/"
+RELEASE_URL = "https://github.com/JulianDvd1/Tracker-scanner/releases/download/v1.0-data/catalog.db.zip"
+
+def sync_from_github(force: bool = False) -> dict:
+    """Descarga catalog.db.zip desde GitHub Releases y actualiza catalog.db en segundo plano"""
+    try:
+        need_download = force or not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000
+        if not need_download:
+            return {"status": "ok", "message": "catalog.db ya está cargado localmente"}
+
+        print("[Cloud Sync] Descargando última versión de catalog.db.zip desde GitHub Releases...", flush=True)
+        tmp_zip = os.path.join(os.path.dirname(__file__), "catalog_cloud.zip")
+        urllib.request.urlretrieve(RELEASE_URL, tmp_zip)
+
+        if os.path.exists(tmp_zip) and os.path.getsize(tmp_zip) > 1000:
+            with zipfile.ZipFile(tmp_zip, 'r') as zf:
+                zf.extractall(os.path.dirname(DB_PATH) or ".")
+            try:
+                os.remove(tmp_zip)
+            except Exception:
+                pass
+            size = os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0
+            print(f"[Cloud Sync] catalog.db actualizado exitosamente ({size:,} bytes).", flush=True)
+            return {"status": "ok", "message": f"Catálogo sincronizado exitosamente ({size:,} bytes)"}
+        return {"status": "error", "message": "El archivo descargado era inválido"}
+    except Exception as e:
+        print(f"[Cloud Sync Error] {e}", flush=True)
+        return {"status": "error", "message": str(e)}
+
+def periodic_sync_worker():
+    while True:
+        time.sleep(1800)  # Cada 30 minutos busca nueva data en Releases
+        print("[Auto-Sync] Buscando catálogo más reciente en GitHub Releases...", flush=True)
+        sync_from_github(force=True)
+
+@app.on_event("startup")
+def startup_event():
+    # Asegurar que catalog.db esté listo al arrancar el servidor
+    sync_from_github(force=False)
+    # Hilo en segundo plano para auto-actualización cada 30 min
+    t = threading.Thread(target=periodic_sync_worker, daemon=True)
+    t.start()
+
+@app.get("/api/sync-cloud")
+@app.post("/api/sync-cloud")
+def trigger_sync():
+    return sync_from_github(force=True)
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
