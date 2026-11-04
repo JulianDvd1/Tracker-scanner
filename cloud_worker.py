@@ -191,8 +191,8 @@ async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: in
                 categories = item.get("categories") or []
                 cat = categories[0].get("name", "General") if categories and isinstance(categories[0], dict) else "General"
                 supp_id = item.get("user_id") or user_data.get("id") or 0
-                supp_name = (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
                 store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
+                supp_name = store_name if store_name else (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
                 plan_name = str(cat_user.get("name") or user_data.get("plan") or "Plan Estándar")
 
                 cursor.execute("""

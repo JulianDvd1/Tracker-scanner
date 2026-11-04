@@ -72,7 +72,8 @@ def get_live_ticker(limit: int = 15):
     conn = get_db()
     c = conn.cursor()
     c.execute("""
-        SELECT s.units_sold, s.recorded_at, p.id, p.name, p.category, p.margin, p.image_url, p.supplier_name
+        SELECT s.units_sold, s.recorded_at, p.id, p.name, p.category, p.margin, p.image_url, 
+               COALESCE(NULLIF(p.store_name, ''), p.supplier_name, 'Proveedor Dropi') as supplier_name
         FROM sales_events s
         JOIN products p ON s.product_id = p.id
         ORDER BY s.id DESC
@@ -93,7 +94,9 @@ def get_leaderboard(limit: int = 50):
     c = conn.cursor()
     c.execute("""
         SELECT 
-            p.id, p.name, p.category, p.supplier_name, p.supplier_tier,
+            p.id, p.name, p.category, 
+            COALESCE(NULLIF(p.store_name, ''), p.supplier_name, 'Proveedor Dropi') as supplier_name, 
+            p.supplier_tier,
             p.sale_price, p.suggested_price, p.margin, p.image_url,
             COALESCE(sum(s.units_sold), 0) as total_sold,
             round(COALESCE(sum(s.units_sold * p.suggested_price), 0), 0) as gmv,
@@ -187,6 +190,8 @@ def get_product_detail(product_id: int):
         return {"error": "Producto no encontrado"}
 
     prod_dict = dict(prod)
+    if prod_dict.get('store_name'):
+        prod_dict['supplier_name'] = prod_dict['store_name']
     prod_dict['image_url'] = format_image_url(prod_dict.get('image_url'))
 
     c.execute("""
@@ -256,7 +261,9 @@ def list_products(
 
     query = """
         SELECT 
-            p.id, p.name, p.category, p.supplier_name, p.supplier_tier,
+            p.id, p.name, p.category, 
+            COALESCE(NULLIF(p.store_name, ''), p.supplier_name, 'Proveedor Dropi') as supplier_name, 
+            p.supplier_tier,
             p.sale_price, p.suggested_price, p.margin, p.image_url,
             COALESCE(s.units_sold, 0) as units_sold,
             COALESCE(s.events_count, 0) as events_count,
