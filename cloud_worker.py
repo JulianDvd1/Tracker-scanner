@@ -118,10 +118,11 @@ def fetch_page_gas(
         "integration": True,
         "userVerified": True
     }
-    # Para Google Apps Script, NO enviar User-Agent (UrlFetchApp de Google lo prohíbe y lanza error 500)
+    # Para Google Apps Script, enviar key tanto en minúscula como mayúscula
     gas_headers = {
         "Content-Type": "application/json;charset=UTF-8",
-        "dropi-integration-key": token
+        "dropi-integration-key": token,
+        "Dropi-Integration-Key": token
     }
 
     direct_headers = {
@@ -254,6 +255,9 @@ def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
     print(f" ESCÁNER DROPI COLOMBIA CON GAS PROXY POOL", flush=True)
     print(f" - Destino BD: {db_filename}", flush=True)
     print(f" - Tokens asignados: {len(tokens)} (1 por hilo concurrente)", flush=True)
+    for idx, t in enumerate(tokens):
+        masked = t[:6] + "..." + t[-4:] if len(t) > 10 else f"*** (len {len(t)})"
+        print(f"   -> Token #{idx+1}: {masked}", flush=True)
     print(f" - Puentes Google Apps Script configurados: {len(google_proxies)}", flush=True)
     print(f" - Hilos paralelos (max_workers): {num_workers}", flush=True)
     print(f" - Páginas a auditar: 1 a {total_pages} (~{total_prods_assigned:,} productos)", flush=True)
