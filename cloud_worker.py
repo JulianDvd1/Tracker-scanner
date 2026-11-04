@@ -2,18 +2,24 @@ import os
 import sys
 import time
 import json
-import asyncio
-import aiohttp
 import sqlite3
 import random
 import argparse
-from typing import List, Dict, Any
+import queue
+import threading
+from typing import List, Dict, Any, Optional
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DROPI_API_URL = "https://api.dropi.co/integrations/products/index"
 
 ALLOWED_SUPPLIER_TIERS = {"PREMIUM EXCLUSIVO", "PREMIUM", "VERIFICADO"}
 MIN_STOCK = 5        # Para incluir productos con stock moderado
-MIN_MARGIN = 10000   # Para incluir relojes Curren, Casrray, calzado y accesorios
+MIN_MARGIN = 10000   # Margen neto mínimo
 PAGE_SIZE = 40       # Límite estricto del servidor de Dropi (40 productos por paquete)
 
 USER_AGENTS = [
@@ -23,16 +29,18 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 ]
 
-def get_tokens(worker_id: int = 1) -> List[str]:
+def get_tokens() -> List[str]:
     tokens = []
-    w_token = (os.getenv(f"DROPI_TOKEN_{worker_id}") or "").strip().strip('"').strip("'")
-    if w_token:
-        tokens.append(w_token)
     for k in ["DROPI_TOKEN_1", "DROPI_TOKEN_2", "DROPI_TOKEN_3", "DROPI_TOKEN_4", "DROPI_TOKEN"]:
         val = (os.getenv(k) or "").strip().strip('"').strip("'")
         if val and val not in tokens:
             tokens.append(val)
     return tokens
+
+def get_google_proxies() -> List[str]:
+    raw = os.getenv("GOOGLE_PROXY_URLS", "")
+    proxies = [p.strip().strip('"').strip("'") for p in raw.split(",") if p.strip()]
+    return proxies
 
 def init_db(db_path: str):
     conn = sqlite3.connect(db_path)
@@ -81,7 +89,24 @@ def init_db(db_path: str):
     conn.commit()
     conn.close()
 
-async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str) -> List[Dict[str, Any]]:
+def create_http_session() -> requests.Session:
+    session = requests.Session()
+    retries = Retry(total=3, backoff_factor=0.3, status_forcelist=[500, 502, 503, 504])
+    adapter = HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=retries)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+def fetch_page_gas(
+    session: requests.Session,
+    page: int,
+    token: str,
+    google_proxies: List[str],
+    proxy_idx_holder: List[int],
+    cooldown_event: threading.Event,
+    trigger_cooldown_fn
+) -> List[Dict[str, Any]]:
+    start_data = (page - 1) * PAGE_SIZE
     payload = {
         "startData": start_data,
         "pageSize": PAGE_SIZE,
@@ -93,175 +118,276 @@ async def fetch_page(session: aiohttp.ClientSession, start_data: int, token: str
         "integration": True,
         "userVerified": True
     }
-
-    # Ritmo continuo (3.0s exactos)
-    await asyncio.sleep(3.0)
-
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
         "dropi-integration-key": token,
         "User-Agent": random.choice(USER_AGENTS)
     }
 
-    max_attempts = 4
-    for attempt in range(1, max_attempts + 1):
+    paquete_puente = {
+        "url": DROPI_API_URL,
+        "method": "post",
+        "headers": headers,
+        "payload": payload
+    }
+
+    max_retries = 4
+    for attempt in range(1, max_retries + 1):
+        # Si hay cooldown global activo, esperar a que termine
+        cooldown_event.wait()
+
+        # Determinar endpoint: Google Apps Script o llamada directa
+        if google_proxies:
+            idx = proxy_idx_holder[0] % len(google_proxies)
+            proxy_idx_holder[0] += 1
+            url_target = google_proxies[idx]
+            is_gas = True
+        else:
+            url_target = DROPI_API_URL
+            is_gas = False
+
         try:
-            async with session.post(DROPI_API_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    if data.get("isSuccess"):
-                        return data.get("objects", [])
-                    return []
-                elif resp.status == 429:
-                    # Silencio absoluto de 65s (permite que la IP de Azure se descongele sin hacer ruido)
-                    print(f" [429 Rate-Limit] Silencio absoluto de 65s para enfriar firewall...", flush=True)
-                    await asyncio.sleep(65.0)
+            if is_gas:
+                r = session.post(url_target, json=paquete_puente, timeout=35, allow_redirects=True)
+                if r.status_code == 200:
+                    try:
+                        res_google = r.json()
+                    except Exception:
+                        res_google = {}
+
+                    status_dropi = res_google.get("status")
+                    if status_dropi == 200:
+                        body = res_google.get("body", "{}")
+                        data_dropi = json.loads(body) if isinstance(body, str) else body
+                        if data_dropi.get("isSuccess"):
+                            return data_dropi.get("objects", [])
+                        return []
+                    elif status_dropi == 429:
+                        # Dropi reportó 429 a través de Google Apps Script
+                        time.sleep(random.uniform(3.0, 5.0))
+                        continue
+                    else:
+                        time.sleep(1.5)
+                        continue
+                elif r.status_code == 429:
+                    time.sleep(random.uniform(3.0, 5.0))
+                    continue
                 else:
-                    await asyncio.sleep(1.5)
+                    time.sleep(2.0)
+            else:
+                # Modo directo (fallback cuando no se han configurado proxies GAS)
+                time.sleep(2.5)
+                r = session.post(url_target, json=payload, headers=headers, timeout=25)
+                if r.status_code == 200:
+                    data_dropi = r.json()
+                    if data_dropi.get("isSuccess"):
+                        return data_dropi.get("objects", [])
+                    return []
+                elif r.status_code == 429:
+                    trigger_cooldown_fn()
+                    continue
+                else:
+                    time.sleep(1.5)
         except Exception as e:
-            if attempt == max_attempts:
-                print(f" Error en offset {start_data}: {e}", flush=True)
-            await asyncio.sleep(2)
+            if attempt == max_retries:
+                # print(f" Error persistente en pág {page}: {e}", flush=True)
+                pass
+            time.sleep(2.0)
+
     return []
 
-async def run_worker(worker_id: int = 1, total_workers: int = 1, total_pages: int = 1250):
-    token = os.getenv("DROPI_TOKEN_1") or os.getenv("DROPI_TOKEN") or ""
-    token = token.strip().strip('"').strip("'")
-    if not token:
-        print(f" ERROR: Token para Dropi no configurado.", flush=True)
+def run_worker_pool(total_pages: int = 1250, num_workers: int = 4):
+    tokens = get_tokens()
+    if not tokens:
+        print(" ERROR: Ningún token configurado para Dropi.", flush=True)
         sys.exit(1)
 
-    pages_per_worker = total_pages // total_workers
-    start_page = ((worker_id - 1) * pages_per_worker) + 1
-    end_page = start_page + pages_per_worker - 1
-    if worker_id == total_workers:
-        end_page = total_pages
+    google_proxies = get_google_proxies()
+    num_workers = min(num_workers, len(tokens)) if len(tokens) < num_workers else num_workers
+    if not google_proxies:
+        print(" [AVISO] GOOGLE_PROXY_URLS no configurado. Operando en modo directo seguro (1 worker).", flush=True)
+        num_workers = 1
 
-    db_filename = "catalog.db" if total_workers == 1 else f"worker_data_{worker_id}.db"
+    db_filename = "catalog.db"
     init_db(db_filename)
-    conn = sqlite3.connect(db_filename)
+    conn = sqlite3.connect(db_filename, check_same_thread=False)
     cursor = conn.cursor()
 
-    total_prods_assigned = (end_page - start_page + 1) * PAGE_SIZE
+    db_lock = threading.Lock()
+    cooldown_lock = threading.Lock()
+    cooldown_event = threading.Event()
+    cooldown_event.set()
+    last_cooldown_time = [0.0]
+
+    def trigger_cooldown():
+        with cooldown_lock:
+            now = time.time()
+            if now - last_cooldown_time[0] > 35:
+                last_cooldown_time[0] = now
+                print(f"\n [COOLDOWN GLOBAL] 429 persistente detectado. Pausa unificada de 30s...", flush=True)
+                cooldown_event.clear()
+                time.sleep(30.0)
+                cooldown_event.set()
+                print(f" [COOLDOWN GLOBAL] Reanudando peticiones...\n", flush=True)
+
+    page_queue = queue.Queue()
+    for p in range(1, total_pages + 1):
+        page_queue.put(p)
+
+    total_prods_assigned = total_pages * PAGE_SIZE
     print(f"\n=======================================================", flush=True)
-    if total_workers == 1:
-        print(f" ESCÁNER MAESTRO DROPI COLOMBIA INICIADO (1 WORKER ESTABLE)", flush=True)
-    else:
-        print(f" TURBO WORKER #{worker_id} / {total_workers} INICIADO", flush=True)
+    print(f" ESCÁNER DROPI COLOMBIA CON GAS PROXY POOL", flush=True)
     print(f" - Destino BD: {db_filename}", flush=True)
-    print(f" - Token: Configurado y estable (Cero ráfagas de prueba)", flush=True)
-    print(f" - Rango de páginas: {start_page} a {end_page} (~{total_prods_assigned:,} productos)", flush=True)
-    print(f" - Ritmo seguro: 1 petición cada 3.0s | Silencio en 429: 65.0s directos", flush=True)
+    print(f" - Tokens asignados: {len(tokens)} (1 por hilo concurrente)", flush=True)
+    print(f" - Puentes Google Apps Script configurados: {len(google_proxies)}", flush=True)
+    print(f" - Hilos paralelos (max_workers): {num_workers}", flush=True)
+    print(f" - Páginas a auditar: 1 a {total_pages} (~{total_prods_assigned:,} productos)", flush=True)
     print(f"=======================================================\n", flush=True)
 
-    saved_count = 0
+    saved_count = [0]
+    pages_done = [0]
     start_time = time.time()
 
-    conn_tcp = aiohttp.TCPConnector(limit=3, ssl=False)
-    async with aiohttp.ClientSession(connector=conn_tcp) as session:
-        for page in range(start_page, end_page + 1):
-            start_data = (page - 1) * PAGE_SIZE
-            objects = await fetch_page(session, start_data, token)
+    def worker_thread(worker_idx: int):
+        token = tokens[worker_idx % len(tokens)]
+        session = create_http_session()
+        proxy_idx_holder = [worker_idx]
 
-            if not objects:
-                continue
+        while True:
+            try:
+                page = page_queue.get_nowait()
+            except queue.Empty:
+                break
 
-            now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
-            for item in objects:
-                user_data = item.get("user") or {}
-                cat_user = user_data.get("category_user") or {}
-                plan_val = user_data.get("plan")
-                plan_str = plan_val.get("name", "") if isinstance(plan_val, dict) else str(plan_val or "")
-                cat_name = cat_user.get("name", "") if isinstance(cat_user, dict) else str(cat_user or "")
-                supp_plan = item.get("supplier_plan") or ""
-                if isinstance(supp_plan, dict):
-                    supp_plan = supp_plan.get("name", "")
+            objects = fetch_page_gas(
+                session=session,
+                page=page,
+                token=token,
+                google_proxies=google_proxies,
+                proxy_idx_holder=proxy_idx_holder,
+                cooldown_event=cooldown_event,
+                trigger_cooldown_fn=trigger_cooldown
+            )
 
-                tier_raw = str(cat_name or plan_str or supp_plan or "").strip().upper()
-                is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
-                is_prem = bool(item.get("is_premium") or user_data.get("is_premium"))
+            if objects:
+                now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
+                valid_prods = []
+                valid_stocks = []
 
-                if "EXCLUSIVO" in tier_raw:
-                    tier = "PREMIUM EXCLUSIVO"
-                elif is_prem or "PREMIUM" in tier_raw:
-                    tier = "PREMIUM"
-                elif is_veri or "VERIFICADO" in tier_raw:
-                    tier = "VERIFICADO"
-                else:
-                    # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO DIRECTAMENTE
-                    continue
+                for item in objects:
+                    user_data = item.get("user") or {}
+                    cat_user = user_data.get("category_user") or {}
+                    plan_val = user_data.get("plan")
+                    plan_str = plan_val.get("name", "") if isinstance(plan_val, dict) else str(plan_val or "")
+                    cat_name = cat_user.get("name", "") if isinstance(cat_user, dict) else str(cat_user or "")
+                    supp_plan = item.get("supplier_plan") or ""
+                    if isinstance(supp_plan, dict):
+                        supp_plan = supp_plan.get("name", "")
 
-                sale_price = float(item.get("sale_price") or 0)
-                sug_price = float(item.get("suggested_price") or sale_price)
-                margin = sug_price - sale_price
+                    tier_raw = str(cat_name or plan_str or supp_plan or "").strip().upper()
+                    is_veri = bool(item.get("is_verified") or user_data.get("is_verified") or item.get("userVerified"))
+                    is_prem = bool(item.get("is_premium") or user_data.get("is_premium"))
 
-                if margin < MIN_MARGIN:
-                    continue
+                    if "EXCLUSIVO" in tier_raw:
+                        tier = "PREMIUM EXCLUSIVO"
+                    elif is_prem or "PREMIUM" in tier_raw:
+                        tier = "PREMIUM"
+                    elif is_veri or "VERIFICADO" in tier_raw:
+                        tier = "VERIFICADO"
+                    else:
+                        # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO DIRECTAMENTE
+                        continue
 
-                # Sanitizar errores tipográficos de proveedores en Dropi (ej. patillera de 35k con sugerido 80M)
-                if (sale_price < 200000 and sug_price > sale_price * 5) or (sug_price > sale_price * 10) or sug_price > 10000000:
-                    continue
+                    sale_price = float(item.get("sale_price") or 0)
+                    sug_price = float(item.get("suggested_price") or sale_price)
+                    margin = sug_price - sale_price
 
-                warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
-                total_stock = sum(int(w.get("stock") or 0) for w in warehouses) if warehouses else int(item.get("stock") or 0)
-                if warehouses and total_stock < MIN_STOCK:
-                    continue
+                    if margin < MIN_MARGIN:
+                        continue
 
-                gallery = item.get("gallery") or []
-                img = ""
-                if gallery:
-                    img = gallery[0].get("urlS3") or gallery[0].get("url") or (gallery[0] if isinstance(gallery[0], str) else "")
+                    # Sanitizar errores tipográficos de proveedores en Dropi (ej. patillera de 35k con sugerido 80M)
+                    if (sale_price < 200000 and sug_price > sale_price * 5) or (sug_price > sale_price * 10) or sug_price > 10000000:
+                        continue
 
-                pid = item.get("id")
-                pname = (item.get("name") or "Sin nombre").strip()
-                categories = item.get("categories") or []
-                cat = categories[0].get("name", "General") if categories and isinstance(categories[0], dict) else "General"
-                supp_id = item.get("user_id") or user_data.get("id") or 0
-                store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
-                supp_name = store_name if store_name else (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
-                plan_name = tier
+                    warehouses = item.get("warehouse_product") or item.get("product_warehouses") or []
+                    total_stock = sum(int(w.get("stock") or 0) for w in warehouses) if warehouses else int(item.get("stock") or 0)
+                    if warehouses and total_stock < MIN_STOCK:
+                        continue
 
-                cursor.execute("""
-                    INSERT OR REPLACE INTO products (
-                        id, name, category, supplier_id, supplier_name, sale_price,
-                        suggested_price, margin, image_url, created_at, updated_at,
-                        store_name, is_verified, is_premium, supplier_plan, supplier_tier
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
-                    margin, img, item.get("created_at") or now_iso, now_iso,
-                    store_name, 1 if is_veri else 0,
-                    1 if is_prem else 0, plan_name, tier
-                ))
+                    gallery = item.get("gallery") or []
+                    img = ""
+                    if gallery:
+                        img = gallery[0].get("urlS3") or gallery[0].get("url") or (gallery[0] if isinstance(gallery[0], str) else "")
 
-                for wh in warehouses:
-                    wh_id = wh.get("warehouse_id", 0)
-                    stock_val = int(wh.get("stock") or 0)
-                    cursor.execute("""
-                        INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
-                        VALUES (?, ?, ?, ?)
-                    """, (pid, wh_id, stock_val, now_iso))
+                    pid = item.get("id")
+                    pname = (item.get("name") or "Sin nombre").strip()
+                    categories = item.get("categories") or []
+                    cat = categories[0].get("name", "General") if categories and isinstance(categories[0], dict) else "General"
+                    supp_id = item.get("user_id") or user_data.get("id") or 0
+                    store_name = (user_data.get("brand_name") or user_data.get("store_name") or "").strip()
+                    supp_name = store_name if store_name else (item.get("supplier_name") or user_data.get("name") or "Proveedor Dropi").strip()
+                    plan_name = tier
 
-                saved_count += 1
+                    valid_prods.append((
+                        pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
+                        margin, img, item.get("created_at") or now_iso, now_iso,
+                        store_name, 1 if is_veri else 0,
+                        1 if is_prem else 0, plan_name, tier
+                    ))
 
-            if page % 10 == 0 or page == end_page:
-                conn.commit()
-                elapsed = time.time() - start_time
-                print(f" -> Pág {page}/{end_page} auditada | Ganadores guardados: {saved_count:,} | Tiempo: {elapsed:.1f}s", flush=True)
+                    for wh in warehouses:
+                        wh_id = wh.get("warehouse_id", 0)
+                        stock_val = int(wh.get("stock") or 0)
+                        valid_stocks.append((pid, wh_id, stock_val, now_iso))
+
+                with db_lock:
+                    for vp in valid_prods:
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO products (
+                                id, name, category, supplier_id, supplier_name, sale_price,
+                                suggested_price, margin, image_url, created_at, updated_at,
+                                store_name, is_verified, is_premium, supplier_plan, supplier_tier
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, vp)
+                    for vs in valid_stocks:
+                        cursor.execute("""
+                            INSERT INTO stock_history (product_id, warehouse_id, stock, recorded_at)
+                            VALUES (?, ?, ?, ?)
+                        """, vs)
+                    saved_count[0] += len(valid_prods)
+
+            with db_lock:
+                pages_done[0] += 1
+                current_done = pages_done[0]
+                if current_done % 10 == 0 or current_done == total_pages:
+                    conn.commit()
+                    elapsed = time.time() - start_time
+                    speed = current_done / (elapsed / 60) if elapsed > 0 else 0
+                    print(f" -> Progreso: {current_done}/{total_pages} págs | Ganadores guardados: {saved_count[0]:,} | {speed:.1f} págs/min | Tiempo: {elapsed:.1f}s", flush=True)
+
+            page_queue.task_done()
+
+    threads = []
+    for i in range(num_workers):
+        t = threading.Thread(target=worker_thread, args=(i,), daemon=True)
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
 
     conn.commit()
     conn.close()
     elapsed = time.time() - start_time
     print(f"\n=======================================================", flush=True)
     print(f" ESCANEO COMPLETADO EN {elapsed:.1f}s ({elapsed/60:.1f} min)!", flush=True)
-    print(f" TOTAL GANADORES GUARDADOS: {saved_count:,}", flush=True)
+    print(f" TOTAL GANADORES GUARDADOS: {saved_count[0]:,}", flush=True)
     print(f"=======================================================\n", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--worker-id", type=int, default=1, help="ID del worker (default 1)")
-    parser.add_argument("--total-workers", type=int, default=1, help="Total workers (default 1)")
     parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=1250, help="Total páginas (1250 = ~50.000 productos)")
+    parser.add_argument("--workers", type=int, default=4, help="Número de hilos concurrentes (default 4)")
     args = parser.parse_args()
 
-    asyncio.run(run_worker(args.worker_id, args.total_workers, args.total_pages))
+    run_worker_pool(total_pages=args.total_pages, num_workers=args.workers)

@@ -2,12 +2,8 @@ name: Dropi Master Scanner (Cloud Tracker)
 
 on:
   schedule:
-    # 4 veces al día (Hora Colombia UTC-5):
-    # 09:00 UTC = 04:00 AM Colombia
-    # 16:00 UTC = 11:00 AM Colombia
-    # 20:00 UTC = 03:00 PM Colombia
-    # 00:00 UTC = 07:00 PM Colombia
-    - cron: '0 0,9,16,20 * * *'
+    # 6am, 8am, 10am, 12pm, 2pm, 4pm, 6pm y 8pm (Hora Colombia / UTC-5)
+    - cron: '0 1,11,13,15,17,19,21,23 * * *'
   workflow_dispatch:
     inputs:
       pages:
@@ -32,10 +28,15 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: pip install aiohttp
+        run: pip install -r requirements.txt
 
       - name: Ejecutar Escáner Continuo (50.000 Productos)
         env:
+          GOOGLE_PROXY_URLS: ${{ secrets.GOOGLE_PROXY_URLS }}
+          DROPI_TOKEN_1: ${{ secrets.DROPI_TOKEN_1 }}
+          DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
+          DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
+          DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
