@@ -43,15 +43,15 @@ def sync_from_github(force: bool = False) -> dict:
 
 def periodic_sync_worker():
     while True:
-        time.sleep(1800)  # Cada 30 minutos busca nueva data en Releases
-        print("[Auto-Sync] Buscando catálogo más reciente en GitHub Releases...", flush=True)
+        time.sleep(120)  # Cada 2 minutos busca y actualiza si hay nuevo Release en GitHub
+        print("[Auto-Sync] Sincronizando catálogo con GitHub Releases...", flush=True)
         sync_from_github(force=True)
 
 @app.on_event("startup")
 def startup_event():
-    # Asegurar que catalog.db esté listo al arrancar el servidor
-    sync_from_github(force=False)
-    # Hilo en segundo plano para auto-actualización cada 30 min
+    # Asegurar descarga del catálogo más fresco al arrancar en Render
+    sync_from_github(force=True)
+    # Hilo en segundo plano para auto-actualización cada 2 minutos
     t = threading.Thread(target=periodic_sync_worker, daemon=True)
     t.start()
 
