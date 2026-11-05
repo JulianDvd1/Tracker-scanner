@@ -73,6 +73,34 @@ def format_image_url(url: Optional[str]) -> str:
     clean = url.lstrip("/")
     return CLOUDFRONT_BASE + clean
 
+def calculate_cod_pricing(sale_price: float, target_net: float = 28000.0) -> dict:
+    """Calcula el precio de venta sugerido y desglose de costos COD en Colombia"""
+    cost = float(sale_price or 0)
+    shipping = 20000.0       # Flete promedio transportadora en Colombia
+    returns_buffer = 3500.0  # Buffer de retorno (12% tasa promedio devolución)
+    cpa_ads = 18000.0        # CPA promedio Meta / TikTok Ads
+    total_costs = cost + shipping + returns_buffer + cpa_ads
+    ideal_price = total_costs + target_net
+    
+    # Redondeo psicológico comercial colombiano (.900 COP)
+    rem = ideal_price % 10000
+    if rem < 4900:
+        recommended_price = (ideal_price // 10000) * 10000 + 4900
+    else:
+        recommended_price = (ideal_price // 10000) * 10000 + 9900
+        
+    net_profit = recommended_price - total_costs
+    roas_break_even = round(recommended_price / cpa_ads, 2) if cpa_ads > 0 else 2.5
+    
+    return {
+        "recommended_price": recommended_price,
+        "net_profit": round(net_profit),
+        "shipping_cost": shipping,
+        "returns_cost": returns_buffer,
+        "cpa_cost": cpa_ads,
+        "roas_break_even": roas_break_even
+    }
+
 @app.get("/api/stats")
 def get_stats():
     conn = get_db()
@@ -108,13 +136,33 @@ def get_stats():
 
     conn.close()
 
+    # Cálculo de última sincronización del archivo catalog.db
+    last_sync_human = "Recientemente"
+    last_sync_time = ""
+    next_sync_human = "Cada 2 horas (:15)"
+    if os.path.exists(DB_PATH):
+        mtime = os.path.getmtime(DB_PATH)
+        dt = datetime.datetime.fromtimestamp(mtime)
+        last_sync_time = dt.strftime("%I:%M %p")
+        diff_mins = max(0, int((datetime.datetime.now() - dt).total_seconds() / 60))
+        if diff_mins < 2:
+            last_sync_human = "Hace un momento"
+        elif diff_mins < 60:
+            last_sync_human = f"Hace {diff_mins} min"
+        else:
+            diff_hours = diff_mins // 60
+            last_sync_human = f"Hace {diff_hours}h {diff_mins % 60}m"
+
     return {
         "total_products": total_products,
         "total_sales_events": total_sales_events,
         "total_units_sold": total_units_sold,
         "winning_products_count": winning_products_count,
         "total_market_gmv": total_market_gmv,
-        "top_categories": categories
+        "top_categories": categories,
+        "last_sync_human": last_sync_human,
+        "last_sync_time": last_sync_time,
+        "next_sync_human": next_sync_human
     }
 
 @app.get("/api/live-ticker")
@@ -173,6 +221,11 @@ def get_leaderboard(limit: int = 50):
         d['target_cpa'] = max(target_cpa, 12000)
         sugg_price = d.get('suggested_price') or (cost + margin)
         d['target_roas'] = round(sugg_price / d['target_cpa'], 2) if d['target_cpa'] > 0 else 3.0
+
+        # Precios recomendados COD para garantizar +$28k netos
+        cod = calculate_cod_pricing(cost, target_net=28000.0)
+        d['recommended_price'] = cod['recommended_price']
+        d['net_profit_est'] = cod['net_profit']
 
         # Tasa estimada de devolución por nicho
         cat = (d.get('category') or '').lower()
@@ -380,6 +433,12 @@ def list_products(
         sugg = d.get('suggested_price') or (cost + m)
         d['estimated_gmv'] = round(u * sugg)
         d['target_cpa'] = max(round(m * 0.35), 12000)
+
+        # Métricas de Venta Sugerida y Utilidad Neta Real COD
+        cod = calculate_cod_pricing(cost, target_net=28000.0)
+        d['recommended_price'] = cod['recommended_price']
+        d['net_profit_est'] = cod['net_profit']
+        d['break_even_roas'] = cod['roas_break_even']
 
         if u >= 300:
             d['badge_type'] = "CONSOLIDADO"

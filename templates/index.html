@@ -214,14 +214,21 @@
           <i class="fa-solid fa-sun hidden dark:block text-xs text-amber-400"></i>
         </button>
 
+        <!-- Indicador de Sincronización Automática en la Nube -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 app-card rounded-xl text-xs font-mono border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20" title="Actualizado automáticamente por GitHub Actions cada 2 horas (minuto :15)">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-slate-400 text-[11px]">Sincronizado:</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]" id="header-last-sync">Automático</span>
+        </div>
+
         <div class="hidden sm:flex items-center gap-3 px-3.5 py-1.5 app-card rounded-xl text-xs font-mono">
           <span class="text-slate-400 text-[11px]">Ventas Totales:</span>
           <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="top-units-metric">21,654 unds</span>
         </div>
 
-        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl shadow-sm transition">
+        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-sm transition">
           <i class="fa-solid fa-calculator text-xs"></i>
-          <span class="hidden sm:inline">Calculadora</span>
+          <span class="hidden sm:inline">Calculadora COD</span>
         </button>
       </div>
     </header>
@@ -545,63 +552,94 @@
     </div>
   </div>
 
-  <!-- ================= MODAL CALCULADORA ================= -->
+  <!-- ================= MODAL CALCULADORA INTELIGENTE COD ================= -->
   <div id="roi-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl">
+    <div class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl border border-slate-200 dark:border-slate-800">
       <button onclick="closeRoiModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="flex items-center gap-3 mb-5">
-        <div class="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100 dark:border-indigo-800 text-base">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800 text-base">
           <i class="fa-solid fa-calculator"></i>
         </div>
         <div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white font-heading">Calculadora de Utilidad Neta (COD)</h3>
-          <p class="text-xs text-slate-500">Evalúa tus números reales antes de pautar</p>
+          <h3 class="text-base font-bold text-slate-900 dark:text-white font-heading">Calculadora de Precio & Margen Real COD</h3>
+          <p class="text-xs text-slate-500 truncate max-w-xs" id="calc-prod-title">Optimiza tu precio para asegurar +$25.000 a $30.000 netos</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta Destacada: Precio de Venta Sugerido Óptimo -->
+      <div class="bg-gradient-to-br from-emerald-500/10 via-indigo-500/5 to-transparent border border-emerald-500/30 p-4 rounded-2xl mb-4">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Precio de Venta Sugerido al Público:</span>
+          <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono">Redondeo .900 COP</span>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <span class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="calc-opt-price">$89.900</span>
+          <div class="text-right">
+            <span class="text-[11px] text-slate-400 block font-sans">ROAS Equilibrio:</span>
+            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono" id="calc-breakeven-roas">Min 2.3x</span>
+          </div>
+        </div>
+        <div id="calc-health-badge" class="mt-2.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Margen Excelente: Cubre flete, pauta y te deja ganancia libre</span>
         </div>
       </div>
 
       <div class="space-y-3.5">
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Precio de Venta Sugerido ($ COP)</label>
-          <input type="number" id="calc-price" value="89000" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+        <!-- Control Deslizante de Ganancia Neta Deseada -->
+        <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-inherit">
+          <div class="flex justify-between items-center mb-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-sack-dollar text-emerald-500"></i> Meta de Utilidad Neta en Bolsillo:
+            </label>
+            <span class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400 font-mono" id="calc-target-net-val">$28.000 COP</span>
+          </div>
+          <input type="range" id="calc-target-net" min="15000" max="40000" step="1000" value="28000" class="w-full accent-emerald-600 cursor-pointer">
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+            <span>$15.000 (Mínimo)</span>
+            <span class="font-bold text-emerald-600">Recomendado: $25k - $30k</span>
+            <span>$40.000 (Alto)</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Costo Proveedor ($)</label>
-            <input type="number" id="calc-cost" value="35000" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Costo Proveedor ($ COP)</label>
+            <input type="number" id="calc-cost" value="32000" step="1000" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Flete Promedio ($)</label>
-            <input type="number" id="calc-shipping" value="18500" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Flete Transportadora ($)</label>
+            <input type="number" id="calc-shipping" value="20000" step="500" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">CPA Estimado Ads ($)</label>
-            <input type="number" id="calc-cpa" value="17000" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">CPA Pauta Meta/TikTok ($)</label>
+            <input type="number" id="calc-cpa" value="18000" step="500" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">% Devoluciones</label>
-            <input type="number" id="calc-returns" value="12" class="w-full app-input border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono">
+            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">% Devolución Estimada</label>
+            <input type="number" id="calc-returns" value="12" min="0" max="40" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
           </div>
         </div>
 
-        <div class="app-card p-4 rounded-2xl border mt-4 space-y-2">
-          <div class="flex justify-between text-xs text-slate-500">
-            <span>Margen Bruto Unitario:</span>
-            <span class="font-bold text-slate-800 dark:text-slate-200 font-mono" id="calc-gross">--</span>
+        <!-- Desglose Completo de Costos Operativos -->
+        <div class="app-card p-3 rounded-xl border space-y-1.5 font-mono text-[11px]">
+          <div class="flex justify-between text-slate-500">
+            <span>Flete Efectivo (Ida + Devoluciones):</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200" id="calc-effective-ship">--</span>
           </div>
-          <div class="flex justify-between text-xs text-slate-500">
-            <span>Costo Total por Pedido:</span>
-            <span class="font-bold text-slate-800 dark:text-slate-200 font-mono" id="calc-total-cost">--</span>
+          <div class="flex justify-between text-slate-500">
+            <span>Total Costos Operativos (Prod + Flete + CPA):</span>
+            <span class="font-bold text-slate-800 dark:text-slate-200" id="calc-total-cost">--</span>
           </div>
           <div class="pt-2 border-t border-inherit flex justify-between items-center">
-            <span class="text-sm font-bold text-slate-900 dark:text-white font-heading">Ganancia Neta en Bolsillo:</span>
-            <span class="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="calc-net">--</span>
+            <span class="font-sans font-bold text-slate-900 dark:text-white text-xs">Margen Neto Real Resultante:</span>
+            <span class="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono" id="calc-net-result">+$28.000 COP</span>
           </div>
         </div>
       </div>
@@ -681,6 +719,11 @@
         document.getElementById('banner-units').innerText = Number(data.total_units_sold).toLocaleString('es-CO');
         document.getElementById('banner-winners').innerText = Number(data.winning_products_count).toLocaleString('es-CO');
         document.getElementById('banner-gmv').innerText = '$' + (Number(data.total_market_gmv) / 1000000).toFixed(1) + 'M';
+        
+        const syncElem = document.getElementById('header-last-sync');
+        if (syncElem && data.last_sync_human) {
+          syncElem.innerText = data.last_sync_human + (data.last_sync_time ? ' (' + data.last_sync_time + ')' : '');
+        }
       } catch (err) {
         console.error(err);
       }
@@ -775,17 +818,34 @@
                 ${p.name}
               </h3>
 
-              <!-- Tarjeta de Números -->
-              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-inherit mb-3 font-mono">
+              <!-- Tarjeta de Números & Rentabilidad Real COD -->
+              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-inherit mb-2 font-mono">
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
                   <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
                 </div>
                 <div>
-                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Margen Neto</span>
-                  <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
+                  <span class="text-[9px] text-emerald-600 dark:text-emerald-400 block uppercase font-sans font-bold">Venta Sugerida</span>
+                  <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">$${Number(p.recommended_price || (Number(p.sale_price) + 68000)).toLocaleString('es-CO')}</span>
                 </div>
               </div>
+
+              <!-- Píldora de Utilidad Neta Real (Garantizando $25k - $30k) -->
+              <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] mb-2.5">
+                <span class="text-slate-600 dark:text-slate-400 flex items-center gap-1 font-medium">
+                  <i class="fa-solid fa-sack-dollar text-emerald-500"></i> Neto en bolsillo:
+                </span>
+                <span class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">+$${Number(p.net_profit_est || 28000).toLocaleString('es-CO')} COP</span>
+              </div>
+
+              <!-- Botón Directo para Simular y Ajustar en la Calculadora -->
+              <button 
+                onclick="event.stopPropagation(); openRoiModalWithProduct(${p.sale_price}, '${p.name.replace(/'/g, "\\'")}')" 
+                class="w-full flex items-center justify-center gap-1.5 py-1.5 mb-3 rounded-xl bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800/80 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-xs font-bold transition"
+                title="Ajustar costos y margen en la calculadora interactiva"
+              >
+                <i class="fa-solid fa-calculator text-emerald-500 text-xs"></i> Simular Venta & Pauta
+              </button>
 
               <!-- Kalodata & Dropdata Benchmarks (GMV, Ventas & CPA) -->
               <div class="space-y-1.5 mb-3 pb-3 border-b border-inherit text-xs font-mono">
@@ -1447,37 +1507,79 @@
       if (currentChart) currentChart.destroy();
     }
 
-    // Calculadora ROI
+    // Calculadora Inteligente de Precio & Rentabilidad COD
     function openRoiModal() {
       document.getElementById('roi-modal').classList.remove('hidden');
       updateRoiCalc();
     }
+    
+    function openRoiModalWithProduct(cost, name) {
+      if (cost) {
+        document.getElementById('calc-cost').value = Math.round(cost);
+      }
+      const titleElem = document.getElementById('calc-prod-title');
+      if (titleElem) {
+        titleElem.innerText = name ? 'Simulando: ' + name : 'Optimiza tu precio para asegurar +$25.000 a $30.000 netos';
+      }
+      openRoiModal();
+    }
+
     function closeRoiModal() {
       document.getElementById('roi-modal').classList.add('hidden');
     }
 
     function updateRoiCalc() {
-      const price = parseFloat(document.getElementById('calc-price').value) || 0;
       const cost = parseFloat(document.getElementById('calc-cost').value) || 0;
       const shipping = parseFloat(document.getElementById('calc-shipping').value) || 0;
       const cpa = parseFloat(document.getElementById('calc-cpa').value) || 0;
       const returnRate = (parseFloat(document.getElementById('calc-returns').value) || 0) / 100;
+      const targetNet = parseFloat(document.getElementById('calc-target-net').value) || 28000;
 
-      const gross = price - cost;
+      // Actualizar etiqueta del slider
+      document.getElementById('calc-target-net-val').innerText = '$' + Math.round(targetNet).toLocaleString('es-CO') + ' COP';
+
+      // Cálculo de flete efectivo incluyendo buffer de devoluciones
       const effectiveShipping = shipping * (1 + returnRate);
-      const totalCost = cost + effectiveShipping + cpa;
-      const netProfit = price - totalCost;
+      const totalOperatingCost = cost + effectiveShipping + cpa;
+      const idealPrice = totalOperatingCost + targetNet;
 
-      document.getElementById('calc-gross').innerText = '$' + Math.round(gross).toLocaleString('es-CO') + ' COP';
-      document.getElementById('calc-total-cost').innerText = '$' + Math.round(totalCost).toLocaleString('es-CO') + ' COP';
+      // Redondeo psicológico comercial a formato .900 COP
+      const rem = idealPrice % 10000;
+      let optPrice = Math.floor(idealPrice / 10000) * 10000 + (rem < 4900 ? 4900 : 9900);
+      if (optPrice < idealPrice) {
+        optPrice += 5000;
+      }
+
+      // Utilidad neta real obtenida con el precio redondeado
+      const actualNetProfit = optPrice - totalOperatingCost;
+      const breakEvenRoas = cpa > 0 ? (optPrice / cpa).toFixed(2) : '2.0';
+
+      document.getElementById('calc-opt-price').innerText = '$' + Math.round(optPrice).toLocaleString('es-CO');
+      document.getElementById('calc-breakeven-roas').innerText = 'Min ' + breakEvenRoas + 'x';
+      document.getElementById('calc-effective-ship').innerText = '$' + Math.round(effectiveShipping).toLocaleString('es-CO') + ' COP';
+      document.getElementById('calc-total-cost').innerText = '$' + Math.round(totalOperatingCost).toLocaleString('es-CO') + ' COP';
+
+      const netResultElem = document.getElementById('calc-net-result');
+      netResultElem.innerText = (actualNetProfit >= 0 ? '+' : '') + '$' + Math.round(actualNetProfit).toLocaleString('es-CO') + ' COP';
       
-      const netElem = document.getElementById('calc-net');
-      netElem.innerText = (netProfit >= 0 ? '+' : '') + '$' + Math.round(netProfit).toLocaleString('es-CO') + ' COP';
-      netElem.className = 'text-xl font-bold font-mono ' + (netProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600');
+      const badgeElem = document.getElementById('calc-health-badge');
+      if (actualNetProfit >= 25000) {
+        badgeElem.className = 'mt-2.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5';
+        badgeElem.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Excelente Rentabilidad: Cubre flete, devoluciones y pauta dejando margen limpio</span>';
+      } else if (actualNetProfit >= 15000) {
+        badgeElem.className = 'mt-2.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center gap-1.5';
+        badgeElem.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> <span>Margen Ajustado: Requiere cuidar el CPA para no quedar en pérdidas</span>';
+      } else {
+        badgeElem.className = 'mt-2.5 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-700 dark:text-rose-300 flex items-center gap-1.5';
+        badgeElem.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> <span>Riesgo Alto: El flete y las devoluciones se comerán toda tu ganancia</span>';
+      }
     }
 
-    ['calc-price', 'calc-cost', 'calc-shipping', 'calc-cpa', 'calc-returns'].forEach(id => {
-      document.getElementById(id).addEventListener('input', updateRoiCalc);
+    ['calc-cost', 'calc-shipping', 'calc-cpa', 'calc-returns', 'calc-target-net'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateRoiCalc);
+      }
     });
 
     function setCategory(cat) {
