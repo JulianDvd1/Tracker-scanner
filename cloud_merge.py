@@ -179,6 +179,37 @@ def merge_all_shards():
         except Exception as e:
             print(f" [ERROR] Error leyendo shard {s_file}: {e}")
 
+    # Optimización de alto rendimiento: Índices y Tabla Resumen
+    print(" -> Generando índices y tabla resumen de alta velocidad para la web...")
+    c_master.execute("""
+        CREATE TABLE IF NOT EXISTS product_sales_summary (
+            product_id INTEGER PRIMARY KEY,
+            units_sold INTEGER DEFAULT 0,
+            events_count INTEGER DEFAULT 0,
+            last_sale TEXT DEFAULT '',
+            week_units INTEGER DEFAULT 0
+        )
+    """)
+    c_master.execute("DELETE FROM product_sales_summary")
+    c_master.execute("""
+        INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
+        SELECT 
+            product_id, 
+            COALESCE(sum(units_sold), 0), 
+            count(*), 
+            COALESCE(max(recorded_at), ''),
+            COALESCE(sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END), 0)
+        FROM sales_events
+        GROUP BY product_id
+    """)
+
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_products_cat ON products(category)")
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_products_margin ON products(margin)")
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_products_tier ON products(supplier_tier)")
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_products_supp ON products(supplier_name)")
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_products_price ON products(sale_price)")
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_sales_prod ON sales_events(product_id)")
+    c_master.execute("CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_events(recorded_at)")
     conn_master.commit()
 
     # Contar total consolidado único

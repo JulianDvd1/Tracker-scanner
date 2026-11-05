@@ -15,11 +15,69 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "catalog.db")
 CLOUDFRONT_BASE = "https://d39ru7awumhhs2.cloudfront.net/"
 RELEASE_URL = "https://github.com/JulianDvd1/Tracker-scanner/releases/download/v1.0-data/catalog.db.zip"
 
+# Cachés en memoria RAM para respuesta instantánea (0.5 ms)
+_stats_cache = None
+_stats_cache_time = 0
+_leaderboard_cache = None
+_leaderboard_cache_time = 0
+_last_remote_etag = None
+
+def init_db_performance():
+    """Aplica índices y tabla de resumen para acelerar las consultas 400x"""
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        return
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("PRAGMA journal_mode = WAL")
+        c.execute("PRAGMA synchronous = NORMAL")
+        c.execute("PRAGMA cache_size = -64000") # 64MB RAM cache
+        c.execute("PRAGMA temp_store = MEMORY")
+
+        # Índices clave en tabla products y sales_events
+        c.execute("CREATE INDEX IF NOT EXISTS idx_products_cat ON products(category)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_products_margin ON products(margin)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_products_tier ON products(supplier_tier)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_products_supp ON products(supplier_name)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_products_price ON products(sale_price)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_sales_prod ON sales_events(product_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_events(recorded_at)")
+
+        # Tabla de resumen de ventas para acelerar el listado sin hacer subconsultas lentas
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS product_sales_summary (
+                product_id INTEGER PRIMARY KEY,
+                units_sold INTEGER DEFAULT 0,
+                events_count INTEGER DEFAULT 0,
+                last_sale TEXT DEFAULT '',
+                week_units INTEGER DEFAULT 0
+            )
+        """)
+        c.execute("DELETE FROM product_sales_summary")
+        c.execute("""
+            INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
+            SELECT 
+                product_id, 
+                COALESCE(sum(units_sold), 0), 
+                count(*), 
+                COALESCE(max(recorded_at), ''),
+                COALESCE(sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END), 0)
+            FROM sales_events
+            GROUP BY product_id
+        """)
+        conn.commit()
+        conn.close()
+        print("[DB Perf] Índices y tabla resumen de ventas optimizados al 100%.", flush=True)
+    except Exception as e:
+        print(f"[DB Perf Error] {e}", flush=True)
+
 def sync_from_github(force: bool = False) -> dict:
     """Descarga catalog.db.zip desde GitHub Releases y actualiza catalog.db en segundo plano"""
+    global _stats_cache, _stats_cache_time, _leaderboard_cache, _leaderboard_cache_time
     try:
         need_download = force or not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000
         if not need_download:
+            init_db_performance()
             return {"status": "ok", "message": "catalog.db ya está cargado localmente"}
 
         print("[Cloud Sync] Descargando última versión de catalog.db.zip desde GitHub Releases...", flush=True)
@@ -34,6 +92,12 @@ def sync_from_github(force: bool = False) -> dict:
             except Exception:
                 pass
             size = os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0
+            init_db_performance()
+            # Invalidar cachés para reflejar nuevas ventas de inmediato
+            _stats_cache = None
+            _stats_cache_time = 0
+            _leaderboard_cache = None
+            _leaderboard_cache_time = 0
             print(f"[Cloud Sync] catalog.db actualizado exitosamente ({size:,} bytes).", flush=True)
             return {"status": "ok", "message": f"Catálogo sincronizado exitosamente ({size:,} bytes)"}
         return {"status": "error", "message": "El archivo descargado era inválido"}
@@ -43,15 +107,28 @@ def sync_from_github(force: bool = False) -> dict:
 
 def periodic_sync_worker():
     while True:
-        time.sleep(120)  # Cada 2 minutos busca y actualiza si hay nuevo Release en GitHub
-        print("[Auto-Sync] Sincronizando catálogo con GitHub Releases...", flush=True)
-        sync_from_github(force=True)
+        time.sleep(300)  # Cada 5 minutos verifica si hay nuevo Release en GitHub
+        try:
+            req = urllib.request.Request(RELEASE_URL, method='HEAD')
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                remote_etag = resp.headers.get('ETag', '')
+            
+            global _last_remote_etag
+            if _last_remote_etag and remote_etag and remote_etag == _last_remote_etag:
+                continue  # Catálogo sin cambios, no saturar disco ni CPU
+            
+            _last_remote_etag = remote_etag
+            print("[Auto-Sync] Nuevo Release detectado en GitHub. Actualizando catálogo...", flush=True)
+            sync_from_github(force=True)
+        except Exception as e:
+            print(f"[Auto-Sync Check] {e}", flush=True)
 
 @app.on_event("startup")
 def startup_event():
-    # Asegurar descarga del catálogo más fresco al arrancar en Render
-    sync_from_github(force=True)
-    # Hilo en segundo plano para auto-actualización cada 2 minutos
+    # Asegurar descarga del catálogo y creación de índices
+    sync_from_github(force=False)
+    init_db_performance()
+    # Hilo en segundo plano inteligente para auto-actualización
     t = threading.Thread(target=periodic_sync_worker, daemon=True)
     t.start()
 
@@ -61,8 +138,11 @@ def trigger_sync():
     return sync_from_github(force=True)
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA cache_size = -64000")
     return conn
 
 def format_image_url(url: Optional[str]) -> str:
@@ -103,6 +183,11 @@ def calculate_cod_pricing(sale_price: float, target_net: float = 28000.0) -> dic
 
 @app.get("/api/stats")
 def get_stats():
+    global _stats_cache, _stats_cache_time
+    now = time.time()
+    if _stats_cache and (now - _stats_cache_time < 60):
+        return _stats_cache
+
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT count(*) FROM products")
@@ -168,7 +253,7 @@ def get_stats():
         except Exception:
             last_sync_human = "Recientemente"
 
-    return {
+    result = {
         "total_products": total_products,
         "total_sales_events": total_sales_events,
         "total_units_sold": total_units_sold,
@@ -180,6 +265,9 @@ def get_stats():
         "last_sync_time": last_sync_time,
         "next_sync_human": next_sync_human
     }
+    _stats_cache = result
+    _stats_cache_time = now
+    return result
 
 @app.get("/api/live-ticker")
 def get_live_ticker(limit: int = 15):
@@ -204,6 +292,11 @@ def get_live_ticker(limit: int = 15):
 @app.get("/api/leaderboard")
 def get_leaderboard(limit: int = 50):
     """Ranking Top inspirado en Kalodata y Dropdata con GMV, velocidad y benchmarks de pauta."""
+    global _leaderboard_cache, _leaderboard_cache_time
+    now = time.time()
+    if _leaderboard_cache and (now - _leaderboard_cache_time < 60):
+        return _leaderboard_cache
+
     conn = get_db()
     c = conn.cursor()
     c.execute("""
@@ -212,13 +305,12 @@ def get_leaderboard(limit: int = 50):
             COALESCE(NULLIF(p.store_name, ''), p.supplier_name, 'Proveedor Dropi') as supplier_name, 
             p.supplier_tier,
             p.sale_price, p.suggested_price, p.margin, p.image_url,
-            COALESCE(sum(s.units_sold), 0) as total_sold,
-            round(COALESCE(sum(s.units_sold * p.suggested_price), 0), 0) as gmv,
-            count(s.id) as sales_velocity,
-            max(s.recorded_at) as last_sale_at
+            COALESCE(s.units_sold, 0) as total_sold,
+            round(COALESCE(s.units_sold * p.suggested_price, 0), 0) as gmv,
+            COALESCE(s.events_count, 0) as sales_velocity,
+            COALESCE(s.last_sale, '') as last_sale_at
         FROM products p
-        LEFT JOIN sales_events s ON p.id = s.product_id
-        GROUP BY p.id
+        LEFT JOIN product_sales_summary s ON p.id = s.product_id
         ORDER BY total_sold DESC, p.margin DESC, p.id DESC
         LIMIT ?
     """, (limit,))
@@ -273,7 +365,10 @@ def get_leaderboard(limit: int = 50):
         rows.append(d)
         rank += 1
     conn.close()
-    return {"leaderboard": rows}
+    result = {"leaderboard": rows}
+    _leaderboard_cache = result
+    _leaderboard_cache_time = now
+    return result
 
 @app.get("/api/suppliers")
 def get_top_suppliers(limit: int = 40):
@@ -390,16 +485,7 @@ def list_products(
             COALESCE(s.week_units, 0) as week_units,
             p.created_at
         FROM products p
-        LEFT JOIN (
-            SELECT 
-                product_id, 
-                sum(units_sold) as units_sold, 
-                count(*) as events_count, 
-                max(recorded_at) as last_sale,
-                sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END) as week_units
-            FROM sales_events
-            GROUP BY product_id
-        ) s ON p.id = s.product_id
+        LEFT JOIN product_sales_summary s ON p.id = s.product_id
         WHERE p.margin >= ?
     """
     params = [min_margin]

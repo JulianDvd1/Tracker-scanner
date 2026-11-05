@@ -1845,10 +1845,11 @@
     loadLiveTicker();
     loadProducts();
 
+    // Actualización inteligente cada 90 segundos para mantener ultra-fluidez sin saturar CPU
     setInterval(() => {
       loadStats();
       loadLiveTicker();
-    }, 30000);
+    }, 90000);
   </script>
 </body>
 </html>
