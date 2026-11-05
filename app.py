@@ -220,42 +220,35 @@ def trigger_scanner(token: str = Query(..., description="Token de seguridad para
 @app.get("/api/admin/clean-anomalies")
 def clean_anomalies_api():
     try:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("""
-            SELECT s.product_id, p.name, s.start_stock, s.end_stock, s.units_sold 
-            FROM sales_events s 
-            JOIN products p ON p.id = s.product_id 
-            WHERE (s.start_stock > 0 AND (s.units_sold * 1.0 / NULLIF(s.start_stock, 0)) > 0.55 AND s.units_sold > 20)
-               OR s.units_sold > 150
-               OR (s.end_stock IN (0, 5, 10, 50, 100) AND (s.units_sold * 1.0 / NULLIF(s.start_stock, 0)) > 0.50 AND s.units_sold >= 15)
-        """)
-        found = [dict(r) for r in c.fetchall()]
-        c.execute("""
-            DELETE FROM sales_events 
-            WHERE (start_stock > 0 AND (units_sold * 1.0 / NULLIF(start_stock, 0)) > 0.55 AND units_sold > 20)
-               OR units_sold > 150
-               OR (end_stock IN (0, 5, 10, 50, 100) AND (units_sold * 1.0 / NULLIF(start_stock, 0)) > 0.50 AND units_sold >= 15)
-        """)
-        del_count = c.rowcount
-        c.execute("DELETE FROM product_sales_summary")
-        c.execute("""
-            INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
-            SELECT 
-                product_id, 
-                COALESCE(sum(units_sold), 0), 
-                count(*), 
-                COALESCE(max(recorded_at), ''),
-                COALESCE(sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END), 0)
-            FROM sales_events
-            GROUP BY product_id
-        """)
-        conn.commit()
+        conn = sqlite3.connect(DB_PATH, timeout=60.0)
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA busy_timeout = 60000")
+        with conn:
+            c = conn.cursor()
+            c.execute("""
+                DELETE FROM sales_events 
+                WHERE (start_stock > 0 AND (units_sold * 1.0 / NULLIF(start_stock, 0)) > 0.55 AND units_sold > 20)
+                   OR units_sold > 150
+                   OR (end_stock IN (0, 5, 10, 50, 100) AND (units_sold * 1.0 / NULLIF(start_stock, 0)) > 0.50 AND units_sold >= 15)
+            """)
+            del_count = c.rowcount
+            c.execute("DELETE FROM product_sales_summary")
+            c.execute("""
+                INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
+                SELECT 
+                    product_id, 
+                    COALESCE(sum(units_sold), 0), 
+                    count(*), 
+                    COALESCE(max(recorded_at), ''),
+                    COALESCE(sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END), 0)
+                FROM sales_events
+                GROUP BY product_id
+            """)
         conn.close()
         global _stats_cache, _leaderboard_cache
         _stats_cache = None
         _leaderboard_cache = None
-        return {"status": "ok", "deleted": del_count, "anomalies_found": found}
+        return {"status": "ok", "deleted": del_count}
     except Exception as e:
         import traceback
         return {"status": "error", "error": str(e), "trace": traceback.format_exc()}
@@ -265,11 +258,12 @@ def get_db():
         conn = sqlite3.connect(":memory:", timeout=10)
         conn.row_factory = sqlite3.Row
         return conn
-    conn = sqlite3.connect(DB_PATH, timeout=15)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA busy_timeout = 30000")
         conn.execute("PRAGMA cache_size = -64000")
     except Exception:
         pass
