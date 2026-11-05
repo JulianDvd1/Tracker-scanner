@@ -7,7 +7,11 @@ import threading
 import time
 from typing import Optional, List
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="DropiSpy Elite Pro", version="3.6.0")
 
@@ -153,6 +157,50 @@ def startup_event():
 @app.post("/api/sync-cloud")
 def trigger_sync():
     return sync_from_github(force=True)
+
+TRIGGER_SECRET = os.getenv("TRIGGER_SECRET", "dropispy2026")
+GITHUB_WORKFLOW_URL = "https://api.github.com/repos/JulianDvd1/Tracker-scanner/actions/workflows/dropi_tracker.yml/dispatches"
+
+@app.get("/api/ping")
+def ping():
+    """Keep-alive para cron-job.org: evita que el contenedor de Render se duerma tras 15 minutos."""
+    return {"status": "alive", "timestamp": time.time(), "message": "DropiSpy Render 24/7 activo"}
+
+@app.api_route("/api/trigger-scanner", methods=["GET", "POST"])
+def trigger_scanner(token: str = Query(..., description="Token de seguridad para activar el barrido")):
+    """Dispara GitHub Actions de inmediato (2-3s) sin depender del cron de GitHub."""
+    if token != TRIGGER_SECRET:
+        return JSONResponse(status_code=403, content={"status": "error", "message": "Token de seguridad inválido"})
+
+    gh_token = os.getenv("GITHUB_TOKEN", "")
+    if not gh_token:
+        return JSONResponse(status_code=500, content={"status": "error", "message": "GITHUB_TOKEN no configurado en variables de entorno"})
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {gh_token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "DropiSpy-Cloud-Trigger/1.0"
+        }
+        data = {
+            "ref": "main",
+            "inputs": {
+                "pages": "1250"
+            }
+        }
+        resp = requests.post(GITHUB_WORKFLOW_URL, headers=headers, json=data, timeout=15)
+        if resp.status_code == 204:
+            colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+            now_col = datetime.datetime.now(colombia_tz).strftime("%Y-%m-%d %I:%M:%S %p")
+            return {
+                "status": "success",
+                "message": "🚀 Barrido de 1.250 páginas iniciado en GitHub Actions exitosamente.",
+                "colombia_time": now_col
+            }
+        else:
+            return JSONResponse(status_code=resp.status_code, content={"status": "error", "detail": resp.text})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=10)

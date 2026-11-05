@@ -253,6 +253,12 @@
           <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]" id="header-last-sync">Automático</span>
         </div>
 
+        <!-- Botón Disparar Barrido Manual en GitHub Actions -->
+        <button onclick="promptTriggerScanner()" id="btn-trigger-scanner" class="flex items-center gap-1.5 text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-xl shadow-xs active:scale-95 transition-all" title="Disparar barrido completo de 31k productos en GitHub Actions ahora">
+          <i class="fa-solid fa-bolt-lightning text-amber-400 text-xs"></i>
+          <span class="hidden lg:inline">Escanear Ahora</span>
+        </button>
+
         <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 app-card rounded-xl text-xs font-mono shadow-xs">
           <i class="fa-solid fa-fire text-amber-500 text-xs"></i>
           <span class="text-slate-400 text-[11px] font-sans">Ventas Totales:</span>
@@ -1855,6 +1861,71 @@
         if (badge) {
           badge.textContent = 'ERR';
           badge.className = 'ml-auto text-[9px] bg-rose-500/20 text-rose-600 font-bold px-1.5 py-0.2 rounded font-mono';
+        }
+      }
+    }
+
+    function showToast(msg, type = 'info') {
+      let toast = document.getElementById('app-floating-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-floating-toast';
+        document.body.appendChild(toast);
+      }
+      
+      const isSuccess = type === 'success';
+      const isError = type === 'error';
+      toast.className = `fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl text-xs font-bold transition-all duration-300 backdrop-blur-md border ${
+        isSuccess ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/40 shadow-emerald-500/20' : 
+        isError ? 'bg-rose-950/90 text-rose-300 border-rose-500/40 shadow-rose-500/20' : 
+        'bg-slate-900/90 text-slate-200 border-slate-700/60'
+      }`;
+      toast.innerHTML = `<i class="fa-solid ${isSuccess ? 'fa-circle-check text-emerald-400' : isError ? 'fa-circle-xmark text-rose-400' : 'fa-circle-info text-indigo-400'} text-sm"></i> <span>${msg}</span>`;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(16px)';
+      }, 4500);
+    }
+
+    async function promptTriggerScanner() {
+      let savedPin = localStorage.getItem('dropispy_trigger_token') || '';
+      let pin = savedPin;
+      if (!pin) {
+        pin = prompt("Ingresa el PIN de seguridad de DropiSpy para activar el escáner:", "dropispy2026");
+        if (!pin) return;
+        localStorage.setItem('dropispy_trigger_token', pin);
+      }
+
+      const btn = document.getElementById('btn-trigger-scanner');
+      const originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> <span class="hidden lg:inline">Enviando orden...</span>`;
+      }
+
+      try {
+        const res = await fetch(`/api/trigger-scanner?token=${encodeURIComponent(pin)}`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.status === 'success') {
+          showToast("🚀 ¡Barrido iniciado en GitHub Actions exitosamente!", "success");
+          setTimeout(() => {
+            if (confirm("¡La orden se envió con éxito a GitHub Actions! ¿Deseas abrir el progreso del barrido en vivo?")) {
+              window.open("https://github.com/JulianDvd1/Tracker-scanner/actions", "_blank");
+            }
+          }, 400);
+        } else {
+          localStorage.removeItem('dropispy_trigger_token');
+          showToast(data.message || "Error al disparar barrido. Verifica el PIN.", "error");
+        }
+      } catch (err) {
+        showToast("Error de conexión al comunicar con el servidor", "error");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
         }
       }
     }
