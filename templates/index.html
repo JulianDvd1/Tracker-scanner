@@ -893,15 +893,26 @@
       }
     }
 
+    // Limpiador inteligente de títulos de Dropi para que Meta Ads y TikTok encuentren anuncios reales
+    function cleanSpyKeywords(name) {
+      if (!name) return '';
+      let clean = name.replace(/^[0-9\-_#\.\s]+/g, '');
+      clean = clean.replace(/\b(combo|set|pack|unidad|unidades|und|unds|original|genuino|importado|nuevo|promocion|promo|x\s*\d+)\b/gi, ' ');
+      clean = clean.replace(/[^\w\s\u00C0-\u017F]/gi, ' ').replace(/\s+/g, ' ').trim();
+      const words = clean.split(' ').filter(w => w.length > 2);
+      return words.slice(0, 3).join(' ') || name.split(' ').slice(0, 3).join(' ');
+    }
+
     // Generar tarjeta de producto reutilizable con efecto cascada
     function createProductCardHtml(p, index = 0) {
       const isFav = watchlist.some(w => w.id === p.id);
       const isComparing = compareList.some(c => c.id === p.id);
       const delay = Math.min((index % 24) * 0.04, 0.8); // Cascada fluida escalonada
       
-      const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(p.name)}&search_type=keyword_unordered&media_type=all`;
-      const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(p.name)}`;
-      const googleTrendsUrl = `https://trends.google.com/trends/explore?geo=CO&q=${encodeURIComponent(p.name)}`;
+      const cleanKeyword = cleanSpyKeywords(p.name);
+      const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(cleanKeyword)}&search_type=keyword_unordered&media_type=all`;
+      const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(cleanKeyword)}`;
+      const googleTrendsUrl = `https://trends.google.com/trends/explore?geo=CO&q=${encodeURIComponent(cleanKeyword)}`;
       const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(p.image_url)}`;
 
       // Badge de Escala Dinámico High-End
@@ -964,6 +975,18 @@
                 <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
               </button>
             </div>
+
+            <!-- Botón Flotante Google Lens sobre la Foto -->
+            <a 
+              href="${lensUrl}" 
+              target="_blank" 
+              onclick="event.stopPropagation()" 
+              class="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/90 hover:bg-amber-500 text-white text-[10px] font-bold border border-slate-700/80 hover:border-amber-400 shadow-md transition group-hover:scale-105"
+              title="Buscar esta foto en Google Lens para ver tiendas y precios"
+            >
+              <i class="fa-solid fa-camera text-[10px] text-amber-400"></i>
+              <span>Google Lens</span>
+            </a>
           </div>
 
           <!-- Contenido de la Tarjeta -->
@@ -1045,13 +1068,13 @@
             <div class="space-y-2 mt-auto pt-2">
               <div class="grid grid-cols-2 gap-2">
                 <a 
-                  href="${metaUrl}" 
+                  href="${lensUrl}" 
                   target="_blank" 
-                  class="flex items-center justify-center gap-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] dark:text-[#4294ff] hover:text-white text-[11px] font-bold py-2 px-1 rounded-xl border border-[#1877F2]/30 hover:border-[#1877F2] shadow-xs transition active:scale-98 whitespace-nowrap leading-none"
-                  title="Ver anuncios en Meta Ads"
+                  class="flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-white text-[11px] font-bold py-2 px-1 rounded-xl border border-amber-500/30 hover:border-amber-500 shadow-xs transition active:scale-98 whitespace-nowrap leading-none"
+                  title="Buscar tiendas y competidores que venden este producto con Google Lens"
                 >
-                  <i class="fa-brands fa-meta text-xs shrink-0"></i>
-                  <span>Meta Ads</span>
+                  <i class="fa-solid fa-camera text-xs shrink-0"></i>
+                  <span>Google Lens</span>
                 </a>
 
                 <button 
@@ -1064,18 +1087,18 @@
                 </button>
               </div>
 
-              <!-- Espías Rápidos Auxiliares (TikTok, Trends, Lens) -->
+              <!-- Espías Auxiliares con Término Limpio (Meta Ads, TikTok, Trends) -->
               <div class="flex items-center justify-center gap-3 text-[11px] text-slate-400 pt-1.5 font-medium border-t border-slate-100 dark:border-slate-800/60">
+                <a href="${metaUrl}" target="_blank" class="hover:text-blue-500 transition flex items-center gap-1 shrink-0" title="Ver anuncios en Meta Ads">
+                  <i class="fa-brands fa-meta text-xs text-blue-500"></i> Meta Ads
+                </a>
+                <span class="text-slate-600 dark:text-slate-700">•</span>
                 <a href="${tiktokUrl}" target="_blank" class="hover:text-black dark:hover:text-white transition flex items-center gap-1 shrink-0" title="Buscar videos en TikTok">
                   <i class="fa-brands fa-tiktok text-xs"></i> TikTok
                 </a>
                 <span class="text-slate-600 dark:text-slate-700">•</span>
-                <a href="${googleTrendsUrl}" target="_blank" class="hover:text-blue-500 transition flex items-center gap-1 shrink-0" title="Tendencias Google Colombia">
-                  <i class="fa-brands fa-google text-xs text-blue-500"></i> Trends
-                </a>
-                <span class="text-slate-600 dark:text-slate-700">•</span>
-                <a href="${lensUrl}" target="_blank" class="hover:text-amber-500 transition flex items-center gap-1 shrink-0" title="Buscar precio fábrica en Google Lens">
-                  <i class="fa-solid fa-magnifying-glass-arrow-right text-xs text-amber-500"></i> Lens
+                <a href="${googleTrendsUrl}" target="_blank" class="hover:text-emerald-500 transition flex items-center gap-1 shrink-0" title="Tendencias Google Colombia">
+                  <i class="fa-solid fa-arrow-trend-up text-xs text-emerald-500"></i> Trends
                 </a>
               </div>
             </div>
@@ -1280,8 +1303,10 @@
 
       tbody.innerHTML = filtered.map(item => {
         const isFav = watchlist.some(w => w.id === item.id);
-        const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(item.name)}&search_type=keyword_unordered&media_type=all`;
-        const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(item.name)}`;
+        const cleanKeyword = cleanSpyKeywords(item.name);
+        const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(cleanKeyword)}&search_type=keyword_unordered&media_type=all`;
+        const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(cleanKeyword)}`;
+        const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(item.image_url)}`;
 
         // Icono de medalla para podio Kalodata
         let rankBadge = `<span class="font-mono font-bold text-slate-400 text-sm">#${item.rank}</span>`;
@@ -1372,6 +1397,9 @@
                 <button onclick="openProductModal(${item.id})" class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white flex items-center justify-center transition" title="Ver Ventas Diarias">
                   <i class="fa-solid fa-chart-line text-xs"></i>
                 </button>
+                <a href="${lensUrl}" target="_blank" class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white flex items-center justify-center transition" title="Buscar tiendas con Google Lens">
+                  <i class="fa-solid fa-camera text-xs"></i>
+                </a>
                 <a href="${metaUrl}" target="_blank" class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white flex items-center justify-center transition" title="Ver Meta Ads">
                   <i class="fa-brands fa-meta text-xs"></i>
                 </a>
@@ -1618,7 +1646,10 @@
         const res = await fetch(`/api/product/${productId}`);
         const data = await res.json();
         const p = data.product;
-        const metaAdUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(p.name)}&search_type=keyword_unordered&media_type=all`;
+        const cleanKeyword = cleanSpyKeywords(p.name);
+        const metaAdUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(cleanKeyword)}&search_type=keyword_unordered&media_type=all`;
+        const tiktokUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(cleanKeyword)}`;
+        const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(p.image_url)}`;
 
         // Filas de la tabla de días individuales
         const dailyRowsHtml = data.daily_sales.map(d => `
@@ -1631,8 +1662,13 @@
 
         content.innerHTML = `
           <div class="flex flex-col md:flex-row gap-6 mb-6">
-            <div class="w-full md:w-48 h-48 bg-slate-50 dark:bg-slate-900 rounded-2xl p-3 flex items-center justify-center border border-inherit shrink-0">
-              <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-contain">
+            <div class="w-full md:w-48 bg-slate-50 dark:bg-slate-900 rounded-2xl p-3 flex flex-col items-center justify-center border border-inherit shrink-0">
+              <div class="w-full h-40 flex items-center justify-center">
+                <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-contain">
+              </div>
+              <a href="${lensUrl}" target="_blank" class="mt-2.5 w-full py-1.5 px-2 rounded-xl bg-amber-500/10 hover:bg-amber-500 text-amber-600 dark:text-amber-400 hover:text-white text-[11px] font-bold border border-amber-500/30 flex items-center justify-center gap-1.5 transition text-center shadow-xs">
+                <i class="fa-solid fa-camera"></i> Buscar con Google Lens
+              </a>
             </div>
 
             <div class="flex-1">
@@ -1704,12 +1740,18 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-3">
-            <button onclick="closeProductModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 transition">
+          <div class="flex flex-wrap items-center justify-end gap-2.5">
+            <button onclick="closeProductModal()" class="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 transition">
               Cerrar
             </button>
-            <a href="${metaAdUrl}" target="_blank" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 shadow-sm transition">
-              <i class="fa-brands fa-meta"></i> Ver Anuncios en Meta Ads
+            <a href="${lensUrl}" target="_blank" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 flex items-center gap-2 shadow-sm transition">
+              <i class="fa-solid fa-camera"></i> Buscar con Google Lens
+            </a>
+            <a href="${metaAdUrl}" target="_blank" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 shadow-sm transition">
+              <i class="fa-brands fa-meta"></i> Ver Meta Ads (${cleanKeyword})
+            </a>
+            <a href="${tiktokUrl}" target="_blank" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-black dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center gap-2 shadow-sm transition">
+              <i class="fa-brands fa-tiktok"></i> TikTok
             </a>
           </div>
         `;
