@@ -64,6 +64,14 @@ def init_db_performance():
         c.execute("CREATE INDEX IF NOT EXISTS idx_sales_prod ON sales_events(product_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_events(recorded_at)")
 
+        # Purgar anomalías históricas (ajustes manuales de bodega o caídas mayores al 55% de inventario)
+        c.execute("""
+            DELETE FROM sales_events 
+            WHERE (start_stock > 0 AND (units_sold * 1.0 / start_stock) > 0.55 AND units_sold > 20)
+               OR units_sold > 150
+               OR (end_stock IN (0, 5, 10, 50, 100) AND (units_sold * 1.0 / NULLIF(start_stock, 0)) > 0.50 AND units_sold >= 15)
+        """)
+
         # Tabla de resumen de ventas para acelerar el listado sin hacer subconsultas lentas
         c.execute("""
             CREATE TABLE IF NOT EXISTS product_sales_summary (

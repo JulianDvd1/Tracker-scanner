@@ -1326,9 +1326,14 @@
             <!-- Unidades Vendidas -->
             <td class="py-3 px-4 text-right font-mono">
               <div class="font-bold text-slate-900 dark:text-white text-xs">
-                ${Number(item.total_sold).toLocaleString('es-CO')}
+                ${Number(item.total_sold).toLocaleString('es-CO')} unds
               </div>
-              <div class="text-[10px] text-slate-400 font-sans">${item.sales_velocity} rotaciones</div>
+              ${item.sales_velocity >= 4 ? 
+                `<div class="text-[10px] text-emerald-500 font-bold font-sans flex items-center justify-end gap-1">
+                   <i class="fa-solid fa-fire text-[9px] text-amber-500"></i>${item.sales_velocity} ciclos constantes
+                 </div>` : 
+                `<div class="text-[10px] text-slate-400 font-sans">${item.sales_velocity} ciclos</div>`
+              }
             </td>
 
             <!-- Margen Neto & ROI -->

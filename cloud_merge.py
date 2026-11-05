@@ -171,8 +171,20 @@ def merge_all_shards():
                     if last:
                         last_stock = last[0]
                         diff = last_stock - current_stock
-                        # Si el stock disminuyó entre 1 y 250 unidades, es una venta confirmada
-                        if 0 < diff <= 250:
+                        drop_ratio = (diff / last_stock) if last_stock > 0 else 0
+
+                        # Filtros Anti-Anomalías y Ajustes Manuales de Bodega:
+                        # 1. Caída violenta del inventario (>55% del stock cuando son más de 20 unidades)
+                        is_abrupt_drop = (drop_ratio > 0.55 and diff > 20)
+                        # 2. Exceso atípico de volumen para un solo intervalo de 2 horas (>150 unidades)
+                        is_excess_volume = (diff > 150)
+                        # 3. Ajuste a números redondos de inventario de bodega (0, 5, 10, 50, 100) con más del 50% de caída y >= 15 unds
+                        is_round_adjustment = (current_stock in (0, 5, 10, 50, 100) and drop_ratio > 0.50 and diff >= 15)
+
+                        is_anomaly = is_abrupt_drop or is_excess_volume or is_round_adjustment
+
+                        # Si el stock disminuyó legítimamente sin ser anomalía de inventario
+                        if 0 < diff and not is_anomaly:
                             c_master.execute("""
                                 INSERT INTO sales_events (product_id, warehouse_id, units_sold, start_stock, end_stock, interval_hours, recorded_at)
                                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -203,6 +215,14 @@ def merge_all_shards():
             week_units INTEGER DEFAULT 0
         )
     """)
+    # Purgar anomalías históricas (ajustes manuales o caídas mayores al 55% de inventario)
+    c_master.execute("""
+        DELETE FROM sales_events 
+        WHERE (start_stock > 0 AND (units_sold * 1.0 / start_stock) > 0.55 AND units_sold > 20)
+           OR units_sold > 150
+           OR (end_stock IN (0, 5, 10, 50, 100) AND (units_sold * 1.0 / NULLIF(start_stock, 0)) > 0.50 AND units_sold >= 15)
+    """)
+
     c_master.execute("DELETE FROM product_sales_summary")
     c_master.execute("""
         INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
