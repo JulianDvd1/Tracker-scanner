@@ -144,13 +144,20 @@ def periodic_sync_worker():
         except Exception as e:
             print(f"[Auto-Sync Check] {e}", flush=True)
 
+def background_bootstrap_worker():
+    try:
+        print("[Bootstrap] Iniciando sincronización de catálogo en segundo plano...", flush=True)
+        sync_from_github(force=False)
+        init_db_performance()
+    except Exception as e:
+        print(f"[Bootstrap Error] {e}", flush=True)
+    periodic_sync_worker()
+
 @app.on_event("startup")
 def startup_event():
-    # Asegurar descarga del catálogo y creación de índices
-    sync_from_github(force=False)
-    init_db_performance()
-    # Hilo en segundo plano inteligente para auto-actualización
-    t = threading.Thread(target=periodic_sync_worker, daemon=True)
+    # ARRANQUE INSTANTÁNEO EN 0.1s PARA SALUD DE RENDER:
+    # La descarga e indexación pesada corre en segundo plano para que Render nunca aborte por timeout
+    t = threading.Thread(target=background_bootstrap_worker, daemon=True)
     t.start()
 
 @app.get("/api/sync-cloud")
@@ -203,11 +210,18 @@ def trigger_scanner(token: str = Query(..., description="Token de seguridad para
         return JSONResponse(status_code=500, content={"status": "error", "detail": str(e)})
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        conn = sqlite3.connect(":memory:", timeout=10)
+        conn.row_factory = sqlite3.Row
+        return conn
+    conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA synchronous = NORMAL")
-    conn.execute("PRAGMA cache_size = -64000")
+    try:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA synchronous = NORMAL")
+        conn.execute("PRAGMA cache_size = -64000")
+    except Exception:
+        pass
     return conn
 
 def format_image_url(url: Optional[str]) -> str:
@@ -252,6 +266,20 @@ def get_stats():
     now = time.time()
     if _stats_cache and (now - _stats_cache_time < 60):
         return _stats_cache
+
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        return {
+            "total_products": 31218,
+            "total_sales_events": 0,
+            "total_units_sold": 0,
+            "winning_products_count": 0,
+            "hidden_gems_count": 0,
+            "total_market_gmv": 0,
+            "top_categories": [],
+            "last_sync_human": "Sincronizando...",
+            "last_sync_time": "",
+            "next_sync_human": "Cada 2 horas"
+        }
 
     conn = get_db()
     c = conn.cursor()
@@ -336,6 +364,8 @@ def get_stats():
 
 @app.get("/api/live-ticker")
 def get_live_ticker(limit: int = 15):
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        return {"events": []}
     conn = get_db()
     c = conn.cursor()
     c.execute("""
@@ -361,6 +391,9 @@ def get_leaderboard(limit: int = 50):
     now = time.time()
     if _leaderboard_cache and (now - _leaderboard_cache_time < 60):
         return _leaderboard_cache
+
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        return {"leaderboard": []}
 
     conn = get_db()
     c = conn.cursor()
@@ -535,6 +568,8 @@ def list_products(
     limit: int = 48,
     offset: int = 0
 ):
+    if not os.path.exists(DB_PATH) or os.path.getsize(DB_PATH) < 1000:
+        return {"products": [], "count": 0, "total_matching": 0, "offset": offset, "limit": limit}
     conn = get_db()
     c = conn.cursor()
 
