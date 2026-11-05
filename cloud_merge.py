@@ -32,6 +32,17 @@ def init_master_db():
             stock INTEGER DEFAULT 0
         )
     """)
+    # Asegurar que la columna stock existe si el catálogo proviene de un release anterior
+    cols = [r[1] for r in c.execute("PRAGMA table_info(products)").fetchall()]
+    if 'stock' not in cols:
+        c.execute("ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0")
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS meta_sync (
+            key TEXT PRIMARY KEY,
+            val TEXT
+        )
+    """)
     c.execute("""
         CREATE TABLE IF NOT EXISTS stock_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -212,6 +223,11 @@ def merge_all_shards():
     c_master.execute("CREATE INDEX IF NOT EXISTS idx_products_price ON products(sale_price)")
     c_master.execute("CREATE INDEX IF NOT EXISTS idx_sales_prod ON sales_events(product_id)")
     c_master.execute("CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_events(recorded_at)")
+    
+    # Grabar hora exacta colombiana de la consolidación en la base de datos
+    colombia_dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5)))
+    c_master.execute("INSERT OR REPLACE INTO meta_sync (key, val) VALUES ('last_scan_time', ?)", (colombia_dt.strftime("%I:%M %p"),))
+    c_master.execute("INSERT OR REPLACE INTO meta_sync (key, val) VALUES ('last_scan_iso', ?)", (colombia_dt.isoformat(),))
     conn_master.commit()
 
     # Contar total consolidado único

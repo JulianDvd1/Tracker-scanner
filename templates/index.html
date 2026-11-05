@@ -1713,30 +1713,39 @@
         const ctx = document.getElementById('dailySalesChart').getContext('2d');
         const isDark = document.documentElement.classList.contains('dark');
         
-        const labels = data.daily_sales.map(d => d.sale_date.slice(5)); // 'MM-DD'
+        const monthNames = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const labels = data.daily_sales.map(d => {
+          const parts = d.sale_date.split('-');
+          return parseInt(parts[2]) + ' ' + (monthNames[parseInt(parts[1])] || parts[1]);
+        });
         const barData = data.daily_sales.map(d => d.daily_units);
 
-        // Gráfica de Línea Limpia (Sin relleno invasivo)
+        // Degradado orgánico y suave estilo Dropkiller / TradingView
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, isDark ? 'rgba(16, 185, 129, 0.28)' : 'rgba(16, 185, 129, 0.22)');
+        gradient.addColorStop(0.5, isDark ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)');
+        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
         currentChart = new Chart(ctx, {
           type: 'line',
           data: {
             labels: labels.length ? labels : ['Sin datos'],
             datasets: [{
-              label: 'Ventas del Día',
+              label: 'Ventas Diarias',
               data: barData.length ? barData : [0],
-              borderColor: '#10B981', // Verde esmeralda nítido de ventas
-              backgroundColor: 'transparent',
-              fill: false, // Línea limpia 100%
-              tension: 0.35,
-              borderWidth: 3,
+              borderColor: '#10B981', // Verde esmeralda vivo
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.45, // Curvatura orgánica suave estilo Dropkiller
+              borderWidth: 2.5,
               pointBackgroundColor: '#10B981',
               pointBorderColor: isDark ? '#0F172A' : '#FFFFFF',
-              pointBorderWidth: 2.5,
-              pointRadius: 5,
-              pointHoverRadius: 8,
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 7,
               pointHoverBackgroundColor: '#34D399',
               pointHoverBorderColor: '#FFFFFF',
-              pointHoverBorderWidth: 3
+              pointHoverBorderWidth: 2.5
             }]
           },
           options: {
@@ -1751,20 +1760,22 @@
                 borderColor: '#10B981',
                 borderWidth: 1,
                 padding: 10,
-                borderRadius: 8,
+                borderRadius: 10,
+                displayColors: false,
                 callbacks: {
-                  label: function(ctx) { return `Ventas este día: ${ctx.parsed.y} unds`; }
+                  title: function(ctx) { return `📅 ${ctx[0].label}`; },
+                  label: function(ctx) { return `⚡ Ventas este día: ${ctx.parsed.y} unds`; }
                 }
               }
             },
             scales: {
               x: { 
-                grid: { color: isDark ? '#1E293B' : '#E2E8F0' }, 
-                ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10 } } 
+                grid: { display: false }, 
+                ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10, weight: 'bold' } } 
               },
               y: { 
                 beginAtZero: true,
-                grid: { color: isDark ? '#1E293B' : '#E2E8F0' }, 
+                grid: { color: isDark ? 'rgba(30, 41, 59, 0.4)' : '#E2E8F0' }, 
                 ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10 }, precision: 0 } 
               }
             }

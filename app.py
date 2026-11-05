@@ -316,35 +316,56 @@ def get_stats():
     c.execute("SELECT count(*) FROM products WHERE margin >= 50000")
     hidden_gems_count = c.fetchone()[0]
 
-    # Fecha/Hora real del último escaneo completado en GitHub Actions (de la base de datos)
-    c.execute("SELECT max(updated_at) FROM products")
-    row_updated = c.fetchone()
-    
-    conn.close()
-
+    # Fecha/Hora real del último escaneo completado en GitHub Actions
     last_sync_human = "Recientemente"
     last_sync_time = ""
     next_sync_human = "Cada 2 horas (:15)"
 
-    if row_updated and row_updated[0]:
-        try:
-            raw_ts = str(row_updated[0]).replace('T', ' ')
-            utc_dt = datetime.datetime.strptime(raw_ts[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc)
-            colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
-            colombia_dt = utc_dt.astimezone(colombia_tz)
-            last_sync_time = colombia_dt.strftime("%I:%M %p")
+    try:
+        c.execute("SELECT val FROM meta_sync WHERE key = 'last_scan_time'")
+        row_meta = c.fetchone()
+        if row_meta and row_meta[0]:
+            last_sync_time = row_meta[0]
+            c.execute("SELECT val FROM meta_sync WHERE key = 'last_scan_iso'")
+            row_iso = c.fetchone()
+            if row_iso and row_iso[0]:
+                col_dt = datetime.datetime.fromisoformat(row_iso[0])
+                now_col = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5)))
+                diff_m = max(0, int((now_col - col_dt).total_seconds() / 60))
+                if diff_m < 2:
+                    last_sync_human = "Hace un momento"
+                elif diff_m < 60:
+                    last_sync_human = f"Hace {diff_m} min"
+                else:
+                    diff_hours = diff_m // 60
+                    last_sync_human = f"Hace {diff_hours}h {diff_m % 60}m"
+    except Exception:
+        pass
 
-            now_colombia = datetime.datetime.now(colombia_tz)
-            diff_mins = max(0, int((now_colombia - colombia_dt).total_seconds() / 60))
-            if diff_mins < 2:
-                last_sync_human = "Hace un momento"
-            elif diff_mins < 60:
-                last_sync_human = f"Hace {diff_mins} min"
-            else:
-                diff_hours = diff_mins // 60
-                last_sync_human = f"Hace {diff_hours}h {diff_mins % 60}m"
-        except Exception:
-            last_sync_human = "Recientemente"
+    if not last_sync_time:
+        c.execute("SELECT max(updated_at) FROM products")
+        row_updated = c.fetchone()
+        if row_updated and row_updated[0]:
+            try:
+                raw_ts = str(row_updated[0]).replace('T', ' ')
+                utc_dt = datetime.datetime.strptime(raw_ts[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+                colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+                colombia_dt = utc_dt.astimezone(colombia_tz)
+                last_sync_time = colombia_dt.strftime("%I:%M %p")
+
+                now_colombia = datetime.datetime.now(colombia_tz)
+                diff_mins = max(0, int((now_colombia - colombia_dt).total_seconds() / 60))
+                if diff_mins < 2:
+                    last_sync_human = "Hace un momento"
+                elif diff_mins < 60:
+                    last_sync_human = f"Hace {diff_mins} min"
+                else:
+                    diff_hours = diff_mins // 60
+                    last_sync_human = f"Hace {diff_hours}h {diff_mins % 60}m"
+            except Exception:
+                last_sync_human = "Recientemente"
+    
+    conn.close()
 
     result = {
         "total_products": total_products,
@@ -506,31 +527,45 @@ def get_product_detail(product_id: int):
         prod_dict['supplier_name'] = prod_dict['store_name']
     prod_dict['image_url'] = format_image_url(prod_dict.get('image_url'))
 
+    # Agrupar ventas por fecha colombiana exacta (-5 horas respecto a UTC)
     c.execute("""
         SELECT 
-            date(recorded_at) as sale_date,
+            date(recorded_at, '-5 hours') as sale_date,
             sum(units_sold) as daily_units,
             count(*) as events_count,
             min(start_stock) as max_stock,
             max(end_stock) as min_stock
         FROM sales_events
         WHERE product_id = ?
-        GROUP BY date(recorded_at)
+        GROUP BY date(recorded_at, '-5 hours')
         ORDER BY sale_date ASC
     """, (product_id,))
-    daily_sales = [dict(r) for r in c.fetchall()]
+    raw_daily = {r['sale_date']: dict(r) for r in c.fetchall()}
+
+    # Construir línea de tiempo continua de los últimos 7 días exactos estilo Dropkiller / Kalodata
+    colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+    today_col = datetime.datetime.now(colombia_tz).date()
+    daily_sales = []
+    for i in range(6, -1, -1):
+        day_val = today_col - datetime.timedelta(days=i)
+        day_key = day_val.strftime("%Y-%m-%d")
+        if day_key in raw_daily:
+            daily_sales.append(raw_daily[day_key])
+        else:
+            daily_sales.append({
+                "sale_date": day_key,
+                "daily_units": 0,
+                "events_count": 0,
+                "max_stock": 0,
+                "min_stock": 0
+            })
 
     c.execute("SELECT COALESCE(sum(units_sold), 0) FROM sales_events WHERE product_id = ?", (product_id,))
     total_sales = c.fetchone()[0]
 
-    c.execute("""
-        SELECT COALESCE(sum(units_sold), 0) 
-        FROM sales_events 
-        WHERE product_id = ? AND date(recorded_at) >= date('now', '-7 days')
-    """, (product_id,))
-    week_sales = c.fetchone()[0]
+    week_sales = sum(d['daily_units'] for d in daily_sales)
     if week_sales == 0 and total_sales > 0:
-        week_sales = sum(d['daily_units'] for d in daily_sales[-7:])
+        week_sales = total_sales
 
     prod_dict['total_sales'] = total_sales
     prod_dict['week_sales'] = week_sales
