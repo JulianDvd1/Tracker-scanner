@@ -1635,11 +1635,7 @@
         const labels = data.daily_sales.map(d => d.sale_date.slice(5)); // 'MM-DD'
         const barData = data.daily_sales.map(d => d.daily_units);
 
-        // Degradado profesional estilo Kalodata / TradingView
-        const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-        gradient.addColorStop(0, isDark ? 'rgba(99, 102, 241, 0.45)' : 'rgba(79, 70, 229, 0.25)');
-        gradient.addColorStop(1, isDark ? 'rgba(99, 102, 241, 0.0)' : 'rgba(79, 70, 229, 0.0)');
-
+        // Gráfica de Línea Limpia (Sin relleno invasivo)
         currentChart = new Chart(ctx, {
           type: 'line',
           data: {
@@ -1647,16 +1643,19 @@
             datasets: [{
               label: 'Ventas del Día',
               data: barData.length ? barData : [0],
-              borderColor: '#6366F1',
-              backgroundColor: gradient,
-              fill: true,
-              tension: 0.4,
-              pointBackgroundColor: '#6366F1',
-              pointBorderColor: isDark ? '#131B2E' : '#FFFFFF',
-              pointBorderWidth: 2,
-              pointRadius: 4,
-              pointHoverRadius: 7,
-              borderWidth: 2.5
+              borderColor: '#10B981', // Verde esmeralda nítido de ventas
+              backgroundColor: 'transparent',
+              fill: false, // Línea limpia 100%
+              tension: 0.35,
+              borderWidth: 3,
+              pointBackgroundColor: '#10B981',
+              pointBorderColor: isDark ? '#0F172A' : '#FFFFFF',
+              pointBorderWidth: 2.5,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointHoverBackgroundColor: '#34D399',
+              pointHoverBorderColor: '#FFFFFF',
+              pointHoverBorderWidth: 3
             }]
           },
           options: {
@@ -1668,6 +1667,8 @@
                 backgroundColor: isDark ? '#0F172A' : '#1E293B',
                 titleColor: '#F8FAFC',
                 bodyColor: '#F8FAFC',
+                borderColor: '#10B981',
+                borderWidth: 1,
                 padding: 10,
                 borderRadius: 8,
                 callbacks: {
@@ -1683,7 +1684,7 @@
               y: { 
                 beginAtZero: true,
                 grid: { color: isDark ? '#1E293B' : '#E2E8F0' }, 
-                ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10 } } 
+                ticks: { color: isDark ? '#94A3B8' : '#64748B', font: { size: 10 }, precision: 0 } 
               }
             }
           }
