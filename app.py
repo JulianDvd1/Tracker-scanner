@@ -38,21 +38,10 @@ def init_db_performance():
         c.execute("PRAGMA cache_size = -64000") # 64MB RAM cache
         c.execute("PRAGMA temp_store = MEMORY")
 
-        # Asegurar columna stock y poblacion desde stock_history
+        # Asegurar columna stock si proviene de release anterior
         cols = [r[1] for r in c.execute("PRAGMA table_info(products)").fetchall()]
         if 'stock' not in cols:
             c.execute("ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0")
-
-        c.execute("""
-            UPDATE products 
-            SET stock = COALESCE((
-                SELECT sum(s.stock)
-                FROM stock_history s
-                WHERE s.product_id = products.id
-                AND s.recorded_at = (SELECT max(recorded_at) FROM stock_history s2 WHERE s2.product_id = products.id)
-            ), 0)
-            WHERE stock = 0 OR stock IS NULL
-        """)
 
         # Índices clave en tabla products y sales_events
         c.execute("CREATE INDEX IF NOT EXISTS idx_products_cat ON products(category)")
