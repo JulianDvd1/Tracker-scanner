@@ -585,6 +585,16 @@
     </main>
   </div>
 
+  <!-- Botón Flotante Scroll to Top -->
+  <button 
+    id="btn-scroll-top" 
+    onclick="scrollToTopSmooth()" 
+    class="fixed bottom-6 right-6 w-11 h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-600/30 border border-indigo-400/30 flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none translate-y-3 z-40 active:scale-95 cursor-pointer" 
+    title="Volver arriba"
+  >
+    <i class="fa-solid fa-arrow-up text-sm"></i>
+  </button>
+
   <!-- ================= BARRA DE COMPARADOR FLOTANTE (Side-by-Side) ================= -->
   <div id="compare-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 z-40 flex items-center gap-4 hidden">
     <div class="flex items-center gap-2">
@@ -878,8 +888,8 @@
               </span>
             </div>
 
-            <!-- Acciones Top Right: Favorito & Comparar -->
-            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10" onclick="event.stopPropagation()">
+            <!-- Acciones Top Right: Favorito & Comparar (Descubrimiento Progresivo) -->
+            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10 opacity-75 group-hover:opacity-100 transition-opacity duration-200" onclick="event.stopPropagation()">
               <button onclick="toggleCompare(${p.id})" class="w-7 h-7 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isComparing ? 'text-indigo-600 font-bold border-indigo-500' : 'text-slate-400 hover:text-indigo-600'} transition shadow-xs" title="Comparar producto">
                 <i class="fa-solid fa-code-compare"></i>
               </button>
@@ -903,60 +913,62 @@
                 ${p.name}
               </h3>
 
-              <!-- Tarjeta de Números & Rentabilidad Real COD -->
-              <div class="grid grid-cols-2 gap-2 bg-slate-100/70 dark:bg-slate-900/70 p-2.5 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 mb-2 font-mono">
-                <div>
-                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
-                  <span class="text-xs font-bold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+              <!-- BLOQUE FINANCIERO UNIFICADO (Ecuación COD Limpia y Compacta) -->
+              <div class="rounded-2xl p-3 bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 mb-3 space-y-2.5">
+                <!-- Fila 1: Precios de Compra y Venta -->
+                <div class="flex items-baseline justify-between">
+                  <div>
+                    <span class="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Costo Dropi</span>
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block tracking-wider">PVP Sugerido</span>
+                    <span class="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">$${Number(p.recommended_price || (Number(p.sale_price) + 68000)).toLocaleString('es-CO')}</span>
+                  </div>
                 </div>
-                <div>
-                  <span class="text-[9px] text-emerald-600 dark:text-emerald-400 block uppercase font-sans font-bold">PVP Sugerido</span>
-                  <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">$${Number(p.recommended_price || (Number(p.sale_price) + 68000)).toLocaleString('es-CO')}</span>
+
+                <!-- Fila 2: Utilidad Neta en Bolsillo + Botón Simular Integrado -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+                  <div class="flex items-center gap-1.5" title="Utilidad neta libre tras flete, pauta y devoluciones">
+                    <i class="fa-solid fa-sack-dollar text-emerald-500 text-xs"></i>
+                    <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Neto:</span>
+                    <span class="font-extrabold text-emerald-600 dark:text-emerald-400 font-mono text-xs">+$${Number(p.net_profit_est || 28000).toLocaleString('es-CO')}</span>
+                  </div>
+
+                  <button 
+                    onclick="event.stopPropagation(); openRoiModalWithProduct(${p.sale_price}, '${p.name.replace(/'/g, "\\'")}')" 
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 hover:border-emerald-500/40 transition active:scale-95 cursor-pointer"
+                    title="Simular pauta y flete en la calculadora interactiva"
+                  >
+                    <i class="fa-solid fa-calculator text-[10px]"></i>
+                    <span>Simular</span>
+                  </button>
                 </div>
               </div>
 
-              <!-- Píldora de Utilidad Neta Real (Garantizando $25k - $30k) -->
-              <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/30 text-[11px] mb-2.5">
-                <span class="text-slate-600 dark:text-slate-300 flex items-center gap-1.5 font-semibold">
-                  <i class="fa-solid fa-sack-dollar text-emerald-500"></i> Neto en bolsillo:
-                </span>
-                <span class="font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">+$${Number(p.net_profit_est || 28000).toLocaleString('es-CO')} COP</span>
-              </div>
-
-              <!-- Botón Directo para Simular y Ajustar en la Calculadora -->
-              <button 
-                onclick="event.stopPropagation(); openRoiModalWithProduct(${p.sale_price}, '${p.name.replace(/'/g, "\\'")}')" 
-                class="w-full flex items-center justify-center gap-2 py-2 mb-3 rounded-xl bg-slate-100/90 hover:bg-emerald-50 dark:bg-slate-800/60 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500/40 text-xs font-bold transition shadow-xs active:scale-98"
-                title="Ajustar costos y margen en la calculadora interactiva"
-              >
-                <i class="fa-solid fa-calculator text-emerald-500 text-xs"></i>
-                <span>Simular Venta & Pauta</span>
-              </button>
-
-              <!-- Kalodata & Dropdata Benchmarks (GMV, Ventas & CPA) -->
-              <div class="space-y-1.5 mb-3 pb-3 border-b border-inherit text-xs font-mono">
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] font-sans flex items-center gap-1.5">
-                    <i class="fa-solid fa-chart-pie text-[10px] text-slate-500"></i> GMV Facturado:
-                  </span>
-                  <span class="font-bold text-emerald-600 dark:text-emerald-400">
-                    $${(Number(p.estimated_gmv || (p.units_sold * (p.suggested_price || p.sale_price))) / 1000000).toFixed(1)}M COP
+              <!-- MICRO-MÉTRICAS DE TRACCIÓN (3 Columnas Limpias y Ordenadas) -->
+              <div class="grid grid-cols-3 gap-2 px-1 mb-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/60 text-center font-mono">
+                <!-- Ventas -->
+                <div class="truncate" title="Unidades totales vendidas detectadas">
+                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">Ventas</span>
+                  <span class="text-xs font-black ${p.units_sold > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'} flex items-center justify-center gap-1 mt-0.5">
+                    <i class="fa-solid fa-bolt text-[9px] text-amber-500"></i>${Number(p.units_sold).toLocaleString('es-CO')}
                   </span>
                 </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] font-sans flex items-center gap-1.5">
-                    <i class="fa-solid fa-bolt text-[10px] text-amber-500"></i> Ventas Totales:
-                  </span>
-                  <span class="font-black ${p.units_sold > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}">
-                    ${Number(p.units_sold).toLocaleString('es-CO')} unds
+
+                <!-- GMV Facturado -->
+                <div class="truncate" title="Volumen GMV facturado estimado">
+                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">GMV</span>
+                  <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block mt-0.5">
+                    $${(Number(p.estimated_gmv || (p.units_sold * (p.suggested_price || p.sale_price))) / 1000000).toFixed(1)}M
                   </span>
                 </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] font-sans flex items-center gap-1.5">
-                    <i class="fa-solid fa-bullseye text-[10px] text-indigo-400"></i> Target CPA Ads:
-                  </span>
-                  <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800/80">
-                    Max $${Number(p.target_cpa || Math.max(Math.round(p.margin * 0.35), 12000)).toLocaleString('es-CO')}
+
+                <!-- Max CPA Ads -->
+                <div class="truncate" title="CPA Máximo de pauta publicitaria sugerido">
+                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">Max CPA</span>
+                  <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 block mt-0.5">
+                    $${Number(p.target_cpa || Math.max(Math.round(p.margin * 0.35), 12000)).toLocaleString('es-CO')}
                   </span>
                 </div>
               </div>
@@ -1019,12 +1031,19 @@
       if (!append) {
         currentOffset = 0;
         cachedProducts = [];
-        grid.innerHTML = `
-          <div class="col-span-full py-24 text-center text-slate-400">
-            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
-            <p class="text-sm">Analizando catálogo y velocidad diaria...</p>
+        grid.innerHTML = Array(8).fill(0).map(() => `
+          <div class="app-card rounded-3xl p-4 overflow-hidden animate-pulse space-y-3.5 border border-slate-200/50 dark:border-slate-800/60">
+            <div class="w-full h-48 bg-slate-200/60 dark:bg-slate-800/60 rounded-2xl"></div>
+            <div class="flex justify-between items-center">
+              <div class="h-3 bg-slate-200/60 dark:bg-slate-800/60 rounded w-1/3"></div>
+              <div class="h-3 bg-slate-200/60 dark:bg-slate-800/60 rounded w-1/5"></div>
+            </div>
+            <div class="h-4 bg-slate-200/60 dark:bg-slate-800/60 rounded w-4/5"></div>
+            <div class="h-16 bg-slate-200/40 dark:bg-slate-800/40 rounded-2xl"></div>
+            <div class="h-8 bg-slate-200/40 dark:bg-slate-800/40 rounded-xl"></div>
+            <div class="h-9 bg-slate-200/40 dark:bg-slate-800/40 rounded-xl"></div>
           </div>
-        `;
+        `).join('');
       } else {
         isLoadingMore = true;
         const btn = document.getElementById('btn-load-more');
@@ -1102,7 +1121,7 @@
       loadProducts(true);
     }
 
-    // Scroll Infinito automático
+    // Scroll Infinito automático & Botón Scroll to Top
     const scrollContainer = document.getElementById('main-scroll-container');
     if (scrollContainer) {
       scrollContainer.addEventListener('scroll', function() {
@@ -1111,7 +1130,23 @@
             loadMoreProducts();
           }
         }
+
+        // Mostrar / ocultar botón flotante volver arriba
+        const topBtn = document.getElementById('btn-scroll-top');
+        if (topBtn) {
+          if (scrollContainer.scrollTop > 450) {
+            topBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
+            topBtn.classList.add('opacity-100', 'translate-y-0');
+          } else {
+            topBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
+            topBtn.classList.remove('opacity-100', 'translate-y-0');
+          }
+        }
       });
+    }
+
+    function scrollToTopSmooth() {
+      if (scrollContainer) scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ================= SECCION KALODATA & DROPDATA LEADERBOARD =================
