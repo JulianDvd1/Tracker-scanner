@@ -2,14 +2,18 @@ name: Dropi Master Scanner (Cloud Tracker)
 
 on:
   schedule:
-    # Cada 2 horas continuas (12 ejecuciones al día de 50.000 productos)
-    - cron: '0 */2 * * *'
+    # Cada 2 horas continuas en minuto 15 para evitar colas de GitHub Actions
+    - cron: '15 */2 * * *'
   workflow_dispatch:
     inputs:
       pages:
         description: 'Cantidad de páginas a escanear (20 = prueba rápida | 1250 = ~50.000 productos)'
         required: true
         default: '1250'
+
+concurrency:
+  group: dropi-master-scanner
+  cancel-in-progress: false
 
 permissions:
   contents: write
