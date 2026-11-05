@@ -42,21 +42,48 @@
     html.light body { background-color: #F8FAFC; color: #0F172A; }
     html.dark body { background-color: #0B0F19; color: #F1F5F9; }
 
-    /* Cards adaptativas */
+    /* Cards adaptativas con soporte de elevación y glassmorphism */
     html.light .app-card { background: #FFFFFF; border: 1px solid #E2E8F0; }
-    html.dark .app-card { background: #131B2E; border: 1px solid #1E293B; }
+    html.dark .app-card { 
+      background: linear-gradient(180deg, #131B2E 0%, #0F1626 100%); 
+      border: 1px solid #1E293B; 
+    }
     
-    html.light .app-card:hover { border-color: #6366F1; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06); }
-    html.dark .app-card:hover { border-color: #6366F1; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4); }
+    html.light .app-card:hover { 
+      border-color: #6366F1; 
+      box-shadow: 0 14px 30px -5px rgba(99, 102, 241, 0.12); 
+    }
+    html.dark .app-card:hover { 
+      border-color: rgba(99, 102, 241, 0.5); 
+      box-shadow: 0 14px 35px -5px rgba(99, 102, 241, 0.2), 0 0 15px rgba(99, 102, 241, 0.1); 
+    }
+
+    /* Glass card especial para banners y métricas */
+    html.light .glass-stat-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid #E2E8F0;
+    }
+    html.dark .glass-stat-card {
+      background: rgba(19, 27, 46, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    html.dark .glass-stat-card:hover {
+      border-color: rgba(99, 102, 241, 0.35);
+      transform: translateY(-2px);
+      transition: all 0.25s ease;
+    }
 
     html.light .app-sidebar { background: #FFFFFF; border-color: #E2E8F0; }
     html.dark .app-sidebar { background: #0E1424; border-color: #1E293B; }
 
-    html.light .app-header { background: #FFFFFF; border-color: #E2E8F0; }
-    html.dark .app-header { background: #0E1424; border-color: #1E293B; }
+    html.light .app-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-color: #E2E8F0; }
+    html.dark .app-header { background: rgba(14, 20, 36, 0.9); backdrop-filter: blur(10px); border-color: #1E293B; }
 
     html.light .app-input { background: #F8FAFC; border-color: #E2E8F0; color: #0F172A; }
     html.dark .app-input { background: #131B2E; border-color: #1E293B; color: #F1F5F9; }
+    html.dark .app-input:focus { border-color: #6366F1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -198,36 +225,41 @@
     <!-- Top Header -->
     <header class="h-16 app-header border-b flex items-center justify-between px-6 shrink-0 z-20 transition-colors">
       
-      <div class="relative w-72 sm:w-96">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+      <div class="relative w-72 sm:w-96 group">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 group-focus-within:text-indigo-500 text-xs transition-colors"></i>
         <input 
           type="text" 
           id="search-input"
           placeholder="Buscar producto, ID o proveedor..."
-          class="w-full app-input border rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition"
+          class="w-full app-input border rounded-xl pl-9 pr-12 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition shadow-inner"
         >
+        <kbd class="hidden sm:inline-flex items-center absolute right-3 top-2.5 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-slate-200/60 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs pointer-events-none">Ctrl K</kbd>
       </div>
 
       <div class="flex items-center gap-3">
         <!-- Dark Mode Toggle Button -->
-        <button onclick="toggleDarkMode()" id="dark-mode-btn" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition" title="Cambiar Tema">
+        <button onclick="toggleDarkMode()" id="dark-mode-btn" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-indigo-500 transition shadow-xs" title="Cambiar Tema">
           <i class="fa-solid fa-moon dark:hidden text-xs"></i>
           <i class="fa-solid fa-sun hidden dark:block text-xs text-amber-400"></i>
         </button>
 
-        <!-- Indicador de Sincronización Automática en la Nube -->
-        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 app-card rounded-xl text-xs font-mono border border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-950/20" title="Actualizado automáticamente por GitHub Actions cada 2 horas (minuto :15)">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="text-slate-400 text-[11px]">Sincronizado:</span>
+        <!-- Indicador de Sincronización Automática en la Nube con Radar Glow -->
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 backdrop-blur shadow-xs" title="Actualizado automáticamente por GitHub Actions cada 2 horas">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span class="text-slate-400 text-[11px] font-sans">Sincronizado:</span>
           <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]" id="header-last-sync">Automático</span>
         </div>
 
-        <div class="hidden sm:flex items-center gap-3 px-3.5 py-1.5 app-card rounded-xl text-xs font-mono">
-          <span class="text-slate-400 text-[11px]">Ventas Totales:</span>
-          <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="top-units-metric">21,654 unds</span>
+        <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 app-card rounded-xl text-xs font-mono shadow-xs">
+          <i class="fa-solid fa-fire text-amber-500 text-xs"></i>
+          <span class="text-slate-400 text-[11px] font-sans">Ventas Totales:</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="top-units-metric">-- unds</span>
         </div>
 
-        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl shadow-sm transition">
+        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 py-2 rounded-xl shadow-md shadow-emerald-500/25 active:scale-95 transition-all">
           <i class="fa-solid fa-calculator text-xs"></i>
           <span class="hidden sm:inline">Calculadora COD</span>
         </button>
@@ -255,37 +287,66 @@
       <!-- ================= VISTA 1: WINNING RADAR ================= -->
       <div id="view-radar" class="space-y-6">
         
-        <!-- Banner Resumen -->
-        <div class="app-card rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors">
-          <div>
-            <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-[11px] font-semibold mb-2 border border-indigo-100 dark:border-indigo-800">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Dropi Colombia Inteligencia de Ventas Diarias</span>
-            </div>
-            <h1 class="text-xl md:text-2xl font-heading font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Radar de Ganadores & Velocidad Diaria
-            </h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
-              Monitorea ventas desglosadas por cada día, proveedores certificados y espía creativos con 1 clic en Meta, TikTok y Google.
-            </p>
-          </div>
+        <!-- Banner Resumen High-Tech -->
+        <div class="relative overflow-hidden rounded-3xl p-6 sm:p-7 border border-indigo-500/20 bg-gradient-to-br from-[#12192e] via-[#0e1424] to-[#0a0f1d] shadow-xl shadow-indigo-950/20 transition-all">
+          <!-- Ambient Glow Orbs -->
+          <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -bottom-24 -left-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]" title="Total productos con proveedor verificado, costo <= $350k y margen viable">
-              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Catálogo Auditado</span>
-              <span class="text-base font-bold text-slate-900 dark:text-white font-mono" id="banner-total-prods">--</span>
+          <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 text-indigo-300 text-[11px] font-semibold mb-2.5 border border-indigo-700/50 backdrop-blur-md shadow-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Dropi Colombia Inteligencia de Ventas Diarias</span>
+              </div>
+              <h1 class="text-xl sm:text-2xl font-heading font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span>Radar de Ganadores & Velocidad Diaria</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm font-sans">LIVE</span>
+              </h1>
+              <p class="text-xs text-slate-400 mt-1.5 max-w-xl leading-relaxed">
+                Monitorea ventas desglosadas por cada día, proveedores certificados y espía creativos con 1 clic en Meta, TikTok y Google.
+              </p>
             </div>
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]" title="Unidades totales vendidas entre los escaneos">
-              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Unds Vendidas</span>
-              <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="banner-units">--</span>
-            </div>
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]" title="Productos con salidas de stock confirmadas por pauta activa">
-              <span class="text-[9px] text-indigo-500 dark:text-indigo-400 block uppercase font-bold tracking-wider">En Venta Activa</span>
-              <span class="text-base font-bold text-indigo-600 dark:text-indigo-400 font-mono" id="banner-winners">--</span>
-            </div>
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]" title="Facturación estimada en el mercado">
-              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Volumen GMV</span>
-              <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="banner-gmv">--</span>
+
+            <!-- 4 KPI Cards Glassmorphic -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+              
+              <!-- Catálogo Auditado -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-white/5 relative group cursor-default" title="Total productos con proveedor verificado, costo <= $350k y margen viable">
+                <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mx-auto mb-1.5 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Catálogo Auditado</span>
+                <span class="text-base font-black text-white font-mono mt-0.5 block" id="banner-total-prods">--</span>
+              </div>
+
+              <!-- Unds Vendidas -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-emerald-500/20 relative group cursor-default" title="Unidades totales vendidas entre los escaneos">
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mx-auto mb-1.5 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-bolt"></i>
+                </div>
+                <span class="text-[9px] text-emerald-400/90 block uppercase font-bold tracking-wider">Unds Vendidas</span>
+                <span class="text-base font-black text-emerald-400 font-mono mt-0.5 block" id="banner-units">--</span>
+              </div>
+
+              <!-- En Venta Activa -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-indigo-500/20 relative group cursor-default" title="Productos con salidas de stock confirmadas por pauta activa">
+                <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 mx-auto mb-1.5 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-rocket"></i>
+                </div>
+                <span class="text-[9px] text-indigo-400 block uppercase font-bold tracking-wider">En Venta Activa</span>
+                <span class="text-base font-black text-indigo-300 font-mono mt-0.5 block" id="banner-winners">--</span>
+              </div>
+
+              <!-- Volumen GMV -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-amber-500/20 relative group cursor-default" title="Facturación estimada en el mercado">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 mx-auto mb-1.5 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+                <span class="text-[9px] text-amber-400/90 block uppercase font-bold tracking-wider">Volumen GMV</span>
+                <span class="text-base font-black text-amber-300 font-mono mt-0.5 block" id="banner-gmv">--</span>
+              </div>
+
             </div>
           </div>
         </div>
@@ -781,57 +842,61 @@
       const googleTrendsUrl = `https://trends.google.com/trends/explore?geo=CO&q=${encodeURIComponent(p.name)}`;
       const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(p.image_url)}`;
 
-      // Badge de Escala Dinámico
+      // Badge de Escala Dinámico High-End
       let scaleBadge = '';
       if (p.badge_type === 'ESCALANDO') {
-        scaleBadge = `<span class="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"><i class="fa-solid fa-rocket"></i> ESCALANDO</span>`;
+        scaleBadge = `<span class="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-orange-500/30 tracking-wide"><i class="fa-solid fa-rocket text-[9px]"></i> ESCALANDO</span>`;
       } else if (p.badge_type === 'CONSOLIDADO') {
-        scaleBadge = `<span class="bg-indigo-600 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"><i class="fa-solid fa-fire text-amber-300"></i> CONSOLIDADO</span>`;
+        scaleBadge = `<span class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-indigo-600/30 tracking-wide"><i class="fa-solid fa-fire text-amber-300 text-[9px]"></i> CONSOLIDADO</span>`;
       } else if (p.badge_type === 'JOYA OCULTA') {
-        scaleBadge = `<span class="bg-purple-600 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"><i class="fa-solid fa-gem text-purple-200"></i> JOYA +$50K</span>`;
+        scaleBadge = `<span class="bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-fuchsia-600/30 tracking-wide"><i class="fa-solid fa-gem text-purple-200 text-[9px]"></i> JOYA +$50K</span>`;
+      }
+
+      const rawTier = (p.supplier_tier || 'VERIFICADO').toUpperCase();
+      let tierBadge = `<span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1"><i class="fa-solid fa-circle-check text-[8px]"></i> VERIFICADO</span>`;
+      if (rawTier.includes('PREMIUM') || rawTier.includes('EXCLUSIVO')) {
+        tierBadge = `<span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1"><i class="fa-solid fa-crown text-[8px]"></i> ${rawTier.replace('PREMIUM ', '')}</span>`;
       }
 
       return `
-        <div class="app-card cascade-item rounded-2xl overflow-hidden flex flex-col group relative transition-colors" style="animation-delay: ${delay}s">
+        <div class="app-card cascade-item rounded-3xl overflow-hidden flex flex-col group relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10" style="animation-delay: ${delay}s">
           
-          <!-- Imagen & Badges -->
-          <div class="relative w-full h-52 bg-slate-50 dark:bg-slate-900/50 overflow-hidden flex items-center justify-center border-b border-inherit cursor-pointer" onclick="openProductModal(${p.id})">
+          <!-- Imagen & Badges Showcase -->
+          <div class="relative w-full h-52 bg-gradient-to-b from-slate-100/60 to-slate-200/30 dark:from-[#111827]/70 dark:to-[#0B0F19]/80 overflow-hidden flex items-center justify-center border-b border-inherit cursor-pointer" onclick="openProductModal(${p.id})">
             <img 
               src="${p.image_url}" 
               alt="${p.name}" 
-              class="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
+              class="w-full h-full object-contain p-3.5 group-hover:scale-108 transition-transform duration-500 ease-out"
               onerror="this.onerror=null; this.src='https://placehold.co/400x300/f8fafc/94a3b8?text=Dropi'"
               loading="lazy"
             >
             
-            <div class="absolute top-2.5 left-2.5 flex flex-col gap-1.5 z-10">
+            <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
               ${scaleBadge}
-              <span class="bg-white/95 dark:bg-slate-900/90 backdrop-blur border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-semibold px-2 py-0.5 rounded-md shadow-xs">
+              <span class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
                 ${p.category || 'General'}
               </span>
             </div>
 
             <!-- Acciones Top Right: Favorito & Comparar -->
-            <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10" onclick="event.stopPropagation()">
-              <button onclick="toggleCompare(${p.id})" class="w-7 h-7 rounded-lg bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isComparing ? 'text-indigo-600 font-bold border-indigo-500' : 'text-slate-400 hover:text-indigo-600'} transition" title="Comparar producto">
+            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10" onclick="event.stopPropagation()">
+              <button onclick="toggleCompare(${p.id})" class="w-7 h-7 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isComparing ? 'text-indigo-600 font-bold border-indigo-500' : 'text-slate-400 hover:text-indigo-600'} transition shadow-xs" title="Comparar producto">
                 <i class="fa-solid fa-code-compare"></i>
               </button>
-              <button onclick="toggleFavorite(${p.id})" class="w-7 h-7 rounded-lg bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isFav ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'} transition" title="Guardar en Testeo">
+              <button onclick="toggleFavorite(${p.id})" class="w-7 h-7 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isFav ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'} transition shadow-xs" title="Guardar en Testeo">
                 <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
               </button>
             </div>
           </div>
 
-          <!-- Contenido -->
+          <!-- Contenido de la Tarjeta -->
           <div class="p-4 flex-1 flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between text-xs mb-2">
                 <span class="truncate max-w-[140px] text-slate-400 font-medium">
                   <i class="fa-solid fa-truck mr-1 text-[11px]"></i>${p.supplier_name || 'Proveedor'}
                 </span>
-                <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  ${(p.supplier_tier || 'VERIFICADO').replace('PREMIUM ', '')}
-                </span>
+                ${tierBadge}
               </div>
 
               <h3 class="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer transition mb-3 leading-snug" onclick="openProductModal(${p.id})">
@@ -839,52 +904,58 @@
               </h3>
 
               <!-- Tarjeta de Números & Rentabilidad Real COD -->
-              <div class="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-inherit mb-2 font-mono">
+              <div class="grid grid-cols-2 gap-2 bg-slate-100/70 dark:bg-slate-900/70 p-2.5 rounded-2xl border border-slate-200/70 dark:border-slate-800/80 mb-2 font-mono">
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
-                  <span class="text-xs font-semibold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+                  <span class="text-xs font-bold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
                 </div>
                 <div>
-                  <span class="text-[9px] text-emerald-600 dark:text-emerald-400 block uppercase font-sans font-bold">Venta Sugerida</span>
+                  <span class="text-[9px] text-emerald-600 dark:text-emerald-400 block uppercase font-sans font-bold">PVP Sugerido</span>
                   <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">$${Number(p.recommended_price || (Number(p.sale_price) + 68000)).toLocaleString('es-CO')}</span>
                 </div>
               </div>
 
               <!-- Píldora de Utilidad Neta Real (Garantizando $25k - $30k) -->
-              <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] mb-2.5">
-                <span class="text-slate-600 dark:text-slate-400 flex items-center gap-1 font-medium">
+              <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/30 text-[11px] mb-2.5">
+                <span class="text-slate-600 dark:text-slate-300 flex items-center gap-1.5 font-semibold">
                   <i class="fa-solid fa-sack-dollar text-emerald-500"></i> Neto en bolsillo:
                 </span>
-                <span class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">+$${Number(p.net_profit_est || 28000).toLocaleString('es-CO')} COP</span>
+                <span class="font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">+$${Number(p.net_profit_est || 28000).toLocaleString('es-CO')} COP</span>
               </div>
 
               <!-- Botón Directo para Simular y Ajustar en la Calculadora -->
               <button 
                 onclick="event.stopPropagation(); openRoiModalWithProduct(${p.sale_price}, '${p.name.replace(/'/g, "\\'")}')" 
-                class="w-full flex items-center justify-center gap-1.5 py-1.5 mb-3 rounded-xl bg-slate-100 hover:bg-emerald-50 dark:bg-slate-800/80 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 text-xs font-bold transition"
+                class="w-full flex items-center justify-center gap-2 py-2 mb-3 rounded-xl bg-slate-100/90 hover:bg-emerald-50 dark:bg-slate-800/60 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500/40 text-xs font-bold transition shadow-xs active:scale-98"
                 title="Ajustar costos y margen en la calculadora interactiva"
               >
-                <i class="fa-solid fa-calculator text-emerald-500 text-xs"></i> Simular Venta & Pauta
+                <i class="fa-solid fa-calculator text-emerald-500 text-xs"></i>
+                <span>Simular Venta & Pauta</span>
               </button>
 
               <!-- Kalodata & Dropdata Benchmarks (GMV, Ventas & CPA) -->
               <div class="space-y-1.5 mb-3 pb-3 border-b border-inherit text-xs font-mono">
                 <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] font-sans">GMV Facturado:</span>
+                  <span class="text-slate-400 text-[11px] font-sans flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie text-[10px] text-slate-500"></i> GMV Facturado:
+                  </span>
                   <span class="font-bold text-emerald-600 dark:text-emerald-400">
                     $${(Number(p.estimated_gmv || (p.units_sold * (p.suggested_price || p.sale_price))) / 1000000).toFixed(1)}M COP
                   </span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] font-sans">Ventas Totales:</span>
-                  <span class="font-bold ${p.units_sold > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'} flex items-center gap-1">
-                    <i class="fa-solid fa-bolt text-amber-500 text-[10px]"></i>
+                  <span class="text-slate-400 text-[11px] font-sans flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-[10px] text-amber-500"></i> Ventas Totales:
+                  </span>
+                  <span class="font-black ${p.units_sold > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}">
                     ${Number(p.units_sold).toLocaleString('es-CO')} unds
                   </span>
                 </div>
                 <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] font-sans">Target CPA Ads:</span>
-                  <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                  <span class="text-slate-400 text-[11px] font-sans flex items-center gap-1.5">
+                    <i class="fa-solid fa-bullseye text-[10px] text-indigo-400"></i> Target CPA Ads:
+                  </span>
+                  <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800/80">
                     Max $${Number(p.target_cpa || Math.max(Math.round(p.margin * 0.35), 12000)).toLocaleString('es-CO')}
                   </span>
                 </div>
@@ -897,7 +968,7 @@
                 <a 
                   href="${metaUrl}" 
                   target="_blank" 
-                  class="flex items-center justify-center gap-1.5 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 text-blue-600 dark:text-blue-400 hover:text-white text-xs font-semibold py-2 rounded-xl border border-blue-200 dark:border-blue-900/50 hover:border-blue-600 transition"
+                  class="flex items-center justify-center gap-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] dark:text-[#4294ff] hover:text-white text-xs font-bold py-2 rounded-xl border border-[#1877F2]/30 hover:border-[#1877F2] shadow-xs transition active:scale-98"
                   title="Ver anuncios en Meta Ads"
                 >
                   <i class="fa-brands fa-meta text-xs"></i>
@@ -906,7 +977,7 @@
 
                 <button 
                   onclick="openProductModal(${p.id})"
-                  class="flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-600 text-indigo-700 dark:text-indigo-300 hover:text-white text-xs font-semibold py-2 rounded-xl border border-indigo-200 dark:border-indigo-800 hover:border-indigo-600 transition"
+                  class="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white text-xs font-bold py-2 rounded-xl border border-indigo-500/30 hover:border-indigo-600 shadow-xs transition active:scale-98"
                 >
                   <i class="fa-solid fa-chart-line text-xs"></i>
                   Ventas Diarias
@@ -914,9 +985,26 @@
               </div>
 
               <!-- Espías Rápidos Auxiliares (TikTok, Trends, Lens) -->
-              <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
+              <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1 font-medium">
                 <span>Espiar en:</span>
-                <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-3">
+                  <a href="${tiktokUrl}" target="_blank" class="hover:text-black dark:hover:text-white transition flex items-center gap-1" title="Buscar videos en TikTok">
+                    <i class="fa-brands fa-tiktok text-xs"></i> TikTok
+                  </a>
+                  <span class="text-slate-600 dark:text-slate-700">•</span>
+                  <a href="${googleTrendsUrl}" target="_blank" class="hover:text-blue-500 transition flex items-center gap-1" title="Tendencias Google Colombia">
+                    <i class="fa-brands fa-google text-xs text-blue-500"></i> Trends
+                  </a>
+                  <span class="text-slate-600 dark:text-slate-700">•</span>
+                  <a href="${lensUrl}" target="_blank" class="hover:text-amber-500 transition flex items-center gap-1" title="Buscar precio fábrica en Google Lens">
+                    <i class="fa-solid fa-magnifying-glass-arrow-right text-xs text-amber-500"></i> Lens
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
                   <a href="${tiktokUrl}" target="_blank" class="hover:text-black dark:hover:text-white transition" title="Buscar videos en TikTok">
                     <i class="fa-brands fa-tiktok"></i> TikTok
                   </a>
