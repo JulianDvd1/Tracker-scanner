@@ -52,7 +52,8 @@ def init_db(db_path: str):
             is_verified INTEGER DEFAULT 0,
             is_premium INTEGER DEFAULT 0,
             supplier_plan TEXT,
-            supplier_tier TEXT
+            supplier_tier TEXT,
+            stock INTEGER DEFAULT 0
         )
     """)
     c.execute("""
@@ -258,7 +259,7 @@ def run_shard(
                     pid, pname, cat, supp_id, supp_name, sale_price, sug_price,
                     margin, img, item.get("created_at") or now_iso, now_iso,
                     store_name, 1 if is_veri else 0,
-                    1 if is_prem else 0, plan_name, tier
+                    1 if is_prem else 0, plan_name, tier, total_stock
                 ))
 
                 for wh in warehouses:
@@ -271,8 +272,8 @@ def run_shard(
                     INSERT OR REPLACE INTO products (
                         id, name, category, supplier_id, supplier_name, sale_price,
                         suggested_price, margin, image_url, created_at, updated_at,
-                        store_name, is_verified, is_premium, supplier_plan, supplier_tier
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        store_name, is_verified, is_premium, supplier_plan, supplier_tier, stock
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, valid_prods)
 
             if valid_stocks:

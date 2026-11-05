@@ -868,6 +868,17 @@
         tierBadge = `<span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1"><i class="fa-solid fa-crown text-[8px]"></i> ${rawTier.replace('PREMIUM ', '')}</span>`;
       }
 
+      // Badge de Stock Disponible en Bodega
+      const stockVal = Number(p.stock || 0);
+      let stockBadge = '';
+      if (stockVal > 0) {
+        if (stockVal < 25) {
+          stockBadge = `<span class="bg-amber-500/95 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 border border-amber-400/40" title="Stock bajo en bodega"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
+        } else {
+          stockBadge = `<span class="bg-slate-900/90 backdrop-blur-md text-emerald-400 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 font-mono" title="Stock disponible en bodega"><i class="fa-solid fa-boxes-stacked text-[9px] text-emerald-400"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
+        }
+      }
+
       return `
         <div class="app-card cascade-item rounded-3xl overflow-hidden flex flex-col group relative transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10" style="animation-delay: ${delay}s">
           
@@ -883,9 +894,12 @@
             
             <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
               ${scaleBadge}
-              <span class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
-                ${p.category || 'General'}
-              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+                  ${p.category || 'General'}
+                </span>
+                ${stockBadge}
+              </div>
             </div>
 
             <!-- Acciones Top Right: Favorito & Comparar (Descubrimiento Progresivo) -->
@@ -1562,18 +1576,22 @@
               <h2 class="text-base font-bold text-slate-900 dark:text-white mb-2 leading-snug">${p.name}</h2>
               <p class="text-xs text-slate-500 mb-3">Proveedor: <strong class="text-slate-800 dark:text-slate-200">${p.supplier_name || 'N/A'}</strong></p>
 
-              <div class="grid grid-cols-3 gap-2.5 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit text-center font-mono">
+              <div class="grid grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit text-center font-mono">
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
                   <span class="text-xs font-bold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
                 </div>
                 <div>
-                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Total Acumulado</span>
-                  <span class="text-xs font-black text-emerald-600 dark:text-emerald-400">${Number(data.total_units_sold).toLocaleString('es-CO')} unds</span>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Stock Bodega</span>
+                  <span class="text-xs font-black ${p.stock < 25 ? 'text-amber-500' : 'text-emerald-500'}">${Number(p.stock || 0).toLocaleString('es-CO')} unds</span>
+                </div>
+                <div>
+                  <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Total Vendido</span>
+                  <span class="text-xs font-black text-indigo-500 dark:text-indigo-400">${Number(data.total_units_sold).toLocaleString('es-CO')} unds</span>
                 </div>
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Margen Neto</span>
-                  <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
+                  <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
                 </div>
               </div>
             </div>

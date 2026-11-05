@@ -34,12 +34,29 @@ def init_db_performance():
         c.execute("PRAGMA cache_size = -64000") # 64MB RAM cache
         c.execute("PRAGMA temp_store = MEMORY")
 
+        # Asegurar columna stock y poblacion desde stock_history
+        cols = [r[1] for r in c.execute("PRAGMA table_info(products)").fetchall()]
+        if 'stock' not in cols:
+            c.execute("ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0")
+
+        c.execute("""
+            UPDATE products 
+            SET stock = COALESCE((
+                SELECT sum(s.stock)
+                FROM stock_history s
+                WHERE s.product_id = products.id
+                AND s.recorded_at = (SELECT max(recorded_at) FROM stock_history s2 WHERE s2.product_id = products.id)
+            ), 0)
+            WHERE stock = 0 OR stock IS NULL
+        """)
+
         # Índices clave en tabla products y sales_events
         c.execute("CREATE INDEX IF NOT EXISTS idx_products_cat ON products(category)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_products_margin ON products(margin)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_products_tier ON products(supplier_tier)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_products_supp ON products(supplier_name)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_products_price ON products(sale_price)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_products_stock ON products(stock)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_sales_prod ON sales_events(product_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_sales_date ON sales_events(recorded_at)")
 
@@ -479,6 +496,7 @@ def list_products(
             COALESCE(NULLIF(p.store_name, ''), p.supplier_name, 'Proveedor Dropi') as supplier_name, 
             p.supplier_tier,
             p.sale_price, p.suggested_price, p.margin, p.image_url,
+            COALESCE(p.stock, 0) as stock,
             COALESCE(s.units_sold, 0) as units_sold,
             COALESCE(s.events_count, 0) as events_count,
             COALESCE(s.last_sale, '') as last_sale,

@@ -28,7 +28,8 @@ def init_master_db():
             is_verified INTEGER DEFAULT 0,
             is_premium INTEGER DEFAULT 0,
             supplier_plan TEXT,
-            supplier_tier TEXT
+            supplier_tier TEXT,
+            stock INTEGER DEFAULT 0
         )
     """)
     c.execute("""
@@ -124,7 +125,8 @@ def merge_all_shards():
                     d["id"], d["name"], d.get("category"), d.get("supplier_id"), d.get("supplier_name"),
                     d.get("sale_price"), d.get("suggested_price"), d.get("margin"), d.get("image_url"),
                     d.get("created_at"), now_iso, d.get("store_name"), d.get("is_verified", 0),
-                    d.get("is_premium", 0), d.get("supplier_plan"), d.get("supplier_tier")
+                    d.get("is_premium", 0), d.get("supplier_plan"), d.get("supplier_tier"),
+                    d.get("stock", 0)
                 ))
 
             if valid_prods:
@@ -132,8 +134,8 @@ def merge_all_shards():
                     INSERT OR REPLACE INTO products (
                         id, name, category, supplier_id, supplier_name, sale_price,
                         suggested_price, margin, image_url, created_at, updated_at,
-                        store_name, is_verified, is_premium, supplier_plan, supplier_tier
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        store_name, is_verified, is_premium, supplier_plan, supplier_tier, stock
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, valid_prods)
                 total_prods_merged += len(valid_prods)
 
