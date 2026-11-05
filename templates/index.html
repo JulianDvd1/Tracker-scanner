@@ -221,51 +221,52 @@
   <div class="flex-1 flex flex-col h-screen overflow-hidden">
     
     <!-- Top Header -->
-    <header class="h-16 app-header border-b flex items-center justify-between px-6 shrink-0 z-20 transition-colors">
+    <header class="h-16 app-header border-b flex items-center justify-between px-3 sm:px-6 shrink-0 z-20 transition-colors gap-2">
       
-      <div class="relative w-72 sm:w-96 group">
+      <!-- Buscador Adaptativo -->
+      <div class="relative flex-1 max-w-[170px] xs:max-w-[210px] sm:max-w-xs md:max-w-sm group">
         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 group-focus-within:text-indigo-500 text-xs transition-colors"></i>
         <input 
           type="text" 
           id="search-input"
-          placeholder="Buscar producto, ID o proveedor..."
-          class="w-full app-input border rounded-xl pl-9 pr-12 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition shadow-inner"
+          placeholder="Buscar producto, ID..."
+          class="w-full app-input border rounded-xl pl-9 pr-7 sm:pr-12 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition shadow-inner"
         >
         <kbd class="hidden sm:inline-flex items-center absolute right-3 top-2.5 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 bg-slate-200/60 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded shadow-xs pointer-events-none">Ctrl K</kbd>
       </div>
 
-      <div class="flex items-center gap-3">
-        <!-- Dark Mode Toggle Button -->
-        <button onclick="toggleDarkMode()" id="dark-mode-btn" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-indigo-500 transition shadow-xs" title="Cambiar Tema">
-          <i class="fa-solid fa-moon dark:hidden text-xs"></i>
-          <i class="fa-solid fa-sun hidden dark:block text-xs text-amber-400"></i>
-        </button>
-
-        <!-- Indicador de Sincronización Automática en la Nube con Radar Glow -->
-        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-mono border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 backdrop-blur shadow-xs" title="Actualizado automáticamente por GitHub Actions cada 2 horas">
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <!-- Indicador de Sincronización Automática (Visible en Móvil y Desktop) -->
+        <div class="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl text-xs font-mono border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/40 shrink-0 shadow-xs" title="Hora del último barrido completado">
           <span class="relative flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <span class="text-slate-400 text-[11px] font-sans">Sincronizado:</span>
-          <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]" id="header-last-sync">Automático</span>
+          <span class="hidden md:inline text-slate-400 text-[11px] font-sans">Sincronizado:</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold text-[10px] sm:text-[11px]" id="header-last-sync">Automático</span>
         </div>
 
         <!-- Botón Disparar Barrido Manual en GitHub Actions -->
-        <button onclick="promptTriggerScanner()" id="btn-trigger-scanner" class="flex items-center gap-1.5 text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-xl shadow-xs active:scale-95 transition-all" title="Disparar barrido completo de 31k productos en GitHub Actions ahora">
+        <button onclick="promptTriggerScanner()" id="btn-trigger-scanner" class="flex items-center gap-1.5 text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 px-2.5 sm:px-3 py-1.5 rounded-xl shadow-xs active:scale-95 transition-all" title="Disparar barrido completo de 31k productos en GitHub Actions ahora">
           <i class="fa-solid fa-bolt-lightning text-amber-400 text-xs"></i>
           <span class="hidden lg:inline">Escanear Ahora</span>
         </button>
 
+        <!-- Dark Mode Toggle Button -->
+        <button onclick="toggleDarkMode()" id="dark-mode-btn" class="w-8 sm:w-9 h-8 sm:h-9 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-indigo-500 transition shadow-xs" title="Cambiar Tema">
+          <i class="fa-solid fa-moon dark:hidden text-xs"></i>
+          <i class="fa-solid fa-sun hidden dark:block text-xs text-amber-400"></i>
+        </button>
+
         <div class="hidden sm:flex items-center gap-2 px-3.5 py-1.5 app-card rounded-xl text-xs font-mono shadow-xs">
           <i class="fa-solid fa-fire text-amber-500 text-xs"></i>
-          <span class="text-slate-400 text-[11px] font-sans">Ventas Totales:</span>
+          <span class="text-slate-400 text-[11px] font-sans">Ventas:</span>
           <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="top-units-metric">-- unds</span>
         </div>
 
-        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 py-2 rounded-xl shadow-md shadow-emerald-500/25 active:scale-95 transition-all">
+        <button onclick="openRoiModal()" class="flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-md shadow-emerald-500/25 active:scale-95 transition-all">
           <i class="fa-solid fa-calculator text-xs"></i>
-          <span class="hidden sm:inline">Calculadora COD</span>
+          <span class="hidden md:inline">Calculadora COD</span>
         </button>
       </div>
     </header>
@@ -285,23 +286,25 @@
       </div>
     </div>
 
-    <!-- Body Container -->
-    <main id="main-scroll-container" class="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+    <!-- Body Container (Adaptado para Móvil con safe padding) -->
+    <main id="main-scroll-container" class="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 pb-24 lg:pb-6 custom-scrollbar">
       
       <!-- ================= VISTA 1: WINNING RADAR ================= -->
-      <div id="view-radar" class="space-y-6">
+      <div id="view-radar" class="space-y-5 sm:space-y-6">
         
         <!-- Banner Resumen High-Tech -->
-        <div class="relative overflow-hidden rounded-3xl p-6 sm:p-7 border border-indigo-500/20 bg-gradient-to-br from-[#12192e] via-[#0e1424] to-[#0a0f1d] shadow-xl shadow-indigo-950/20 transition-all">
+        <div class="relative overflow-hidden rounded-3xl p-5 sm:p-7 border border-indigo-500/20 bg-gradient-to-br from-[#12192e] via-[#0e1424] to-[#0a0f1d] shadow-xl shadow-indigo-950/20 transition-all">
           <!-- Ambient Glow Orbs -->
           <div class="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
           <div class="absolute -bottom-24 -left-24 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 text-indigo-300 text-[11px] font-semibold mb-2.5 border border-indigo-700/50 backdrop-blur-md shadow-xs">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 text-indigo-300 text-[11px] font-semibold mb-2.5 border border-indigo-700/50 shadow-xs flex-wrap">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Dropi Colombia Inteligencia de Ventas Diarias</span>
+                <span>Dropi Colombia Inteligencia de Ventas</span>
+                <span class="text-slate-500 hidden sm:inline">•</span>
+                <span class="text-emerald-400 font-mono text-[10px] w-full sm:w-auto mt-0.5 sm:mt-0" id="hero-last-sync"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Barrido: Calculando...</span>
               </div>
               <h1 class="text-xl sm:text-2xl font-heading font-extrabold text-white tracking-tight flex items-center gap-2">
                 <span>Radar de Ganadores & Velocidad Diaria</span>
@@ -589,36 +592,60 @@
     </main>
   </div>
 
-  <!-- Botón Flotante Scroll to Top -->
+  <!-- Botón Flotante Scroll to Top (Posicionado seguro en móvil y desktop) -->
   <button 
     id="btn-scroll-top" 
     onclick="scrollToTopSmooth()" 
-    class="fixed bottom-6 right-6 w-11 h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-600/30 border border-indigo-400/30 flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none translate-y-3 z-40 active:scale-95 cursor-pointer" 
+    class="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 w-11 h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-600/30 border border-indigo-400/30 flex items-center justify-center transition-all duration-300 opacity-0 pointer-events-none translate-y-3 z-40 active:scale-95 cursor-pointer" 
     title="Volver arriba"
   >
     <i class="fa-solid fa-arrow-up text-sm"></i>
   </button>
 
   <!-- ================= BARRA DE COMPARADOR FLOTANTE (Side-by-Side) ================= -->
-  <div id="compare-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 z-40 flex items-center gap-4 hidden">
+  <div id="compare-bar" class="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700 z-40 flex items-center gap-4 hidden max-w-[90vw]">
     <div class="flex items-center gap-2">
       <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
-      <span class="text-xs font-semibold" id="compare-count-text">0 seleccionados para comparar</span>
+      <span class="text-xs font-semibold" id="compare-count-text">0 seleccionados</span>
     </div>
     <div class="flex items-center gap-2">
-      <button onclick="openCompareModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl transition">
-        Comparar Ahora
+      <button onclick="openCompareModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+        Comparar
       </button>
       <button onclick="clearCompare()" class="text-slate-400 hover:text-white text-xs px-2 py-1">
-        Cancelar
+        ✕
       </button>
     </div>
   </div>
 
+  <!-- ================= BARRA DE NAVEGACIÓN MÓVIL ESTILO APP NATIVA ================= -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0E1424]/95 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-around py-2 px-1 shadow-2xl backdrop-blur-md">
+    <button onclick="switchView('radar')" id="mobile-nav-radar" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 py-1 px-3 rounded-xl transition">
+      <i class="fa-solid fa-bolt text-sm"></i>
+      <span>Radar</span>
+    </button>
+    <button onclick="switchView('leaderboard')" id="mobile-nav-leaderboard" class="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
+      <i class="fa-solid fa-trophy text-sm"></i>
+      <span>Top 50</span>
+    </button>
+    <button onclick="switchView('suppliers')" id="mobile-nav-suppliers" class="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
+      <i class="fa-solid fa-truck text-sm"></i>
+      <span>Proveedores</span>
+    </button>
+    <button onclick="switchView('watchlist')" id="mobile-nav-watchlist" class="flex flex-col items-center gap-0.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 py-1 px-3 rounded-xl transition">
+      <i class="fa-solid fa-star text-sm"></i>
+      <span>Testeo</span>
+    </button>
+    <button onclick="promptTriggerScanner()" class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-amber-500 py-1 px-2.5 rounded-xl transition active:scale-90">
+      <i class="fa-solid fa-bolt-lightning text-sm animate-pulse"></i>
+      <span>Escanear</span>
+    </button>
+  </nav>
+
   <!-- ================= MODAL COMPARADOR (Side-by-Side) ================= -->
-  <div id="compare-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="app-card rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 relative shadow-2xl">
-      <button onclick="closeCompareModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
+  <div id="compare-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="app-card rounded-2xl sm:rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-4 sm:p-6 relative shadow-2xl">
+      <button onclick="closeCompareModal()" class="absolute top-4 sm:top-5 right-4 sm:right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
         <i class="fa-solid fa-xmark"></i>
       </button>
       
@@ -632,9 +659,9 @@
   </div>
 
   <!-- ================= MODAL DETALLE CON VENTAS DIARIAS ================= -->
-  <div id="product-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="app-card rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar p-6 relative shadow-2xl">
-      <button onclick="closeProductModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
+  <div id="product-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="app-card rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-4 sm:p-6 relative shadow-2xl">
+      <button onclick="closeProductModal()" class="absolute top-4 sm:top-5 right-4 sm:right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
         <i class="fa-solid fa-xmark"></i>
       </button>
       
@@ -773,7 +800,7 @@
     }
     initTheme();
 
-    // Vistas (Tabs)
+    // Vistas (Tabs adaptado para escritorio y barra inferior móvil)
     function switchView(view) {
       document.getElementById('view-radar').classList.add('hidden');
       document.getElementById('view-leaderboard').classList.add('hidden');
@@ -781,10 +808,17 @@
       document.getElementById('view-suppliers').classList.add('hidden');
 
       ['radar', 'leaderboard', 'watchlist', 'suppliers'].forEach(v => {
+        // Botones de sidebar (Desktop)
         const btn = document.getElementById(`nav-btn-${v}`);
         if (btn) {
           btn.classList.remove('bg-indigo-50', 'dark:bg-indigo-950/70', 'text-indigo-700', 'dark:text-indigo-300', 'border', 'border-indigo-100', 'dark:border-indigo-800');
           btn.classList.add('text-slate-600', 'dark:text-slate-400');
+        }
+        // Botones de barra inferior (Móvil)
+        const mBtn = document.getElementById(`mobile-nav-${v}`);
+        if (mBtn) {
+          mBtn.classList.remove('text-indigo-600', 'dark:text-indigo-400', 'font-bold');
+          mBtn.classList.add('text-slate-500', 'dark:text-slate-400', 'font-semibold');
         }
       });
 
@@ -792,6 +826,12 @@
       if (activeBtn) {
         activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
         activeBtn.classList.add('bg-indigo-50', 'dark:bg-indigo-950/70', 'text-indigo-700', 'dark:text-indigo-300', 'border', 'border-indigo-100', 'dark:border-indigo-800');
+      }
+
+      const activeMBtn = document.getElementById(`mobile-nav-${view}`);
+      if (activeMBtn) {
+        activeMBtn.classList.remove('text-slate-500', 'dark:text-slate-400', 'font-semibold');
+        activeMBtn.classList.add('text-indigo-600', 'dark:text-indigo-400', 'font-bold');
       }
 
       document.getElementById(`view-${view}`).classList.remove('hidden');
@@ -815,9 +855,17 @@
         document.getElementById('banner-winners').innerText = Number(data.winning_products_count).toLocaleString('es-CO');
         document.getElementById('banner-gmv').innerText = '$' + (Number(data.total_market_gmv) / 1000000).toFixed(1) + 'M';
         
+        // Sincronización en cabecera (Desktop y Móvil)
         const syncElem = document.getElementById('header-last-sync');
-        if (syncElem && data.last_sync_human) {
-          syncElem.innerText = data.last_sync_human + (data.last_sync_time ? ' (' + data.last_sync_time + ')' : '');
+        if (syncElem && (data.last_sync_time || data.last_sync_human)) {
+          syncElem.innerText = data.last_sync_time ? data.last_sync_time : data.last_sync_human;
+          syncElem.title = `Último barrido: ${data.last_sync_human} (${data.last_sync_time || ''})`;
+        }
+
+        // Sincronización en banner hero
+        const heroSync = document.getElementById('hero-last-sync');
+        if (heroSync && (data.last_sync_time || data.last_sync_human)) {
+          heroSync.innerHTML = `<i class="fa-solid fa-clock-rotate-left mr-1"></i>Último barrido: <strong class="text-emerald-400">${data.last_sync_time || ''}</strong> <span class="text-slate-400">(${data.last_sync_human})</span>`;
         }
       } catch (err) {
         console.error(err);
@@ -1591,7 +1639,7 @@
               <h2 class="text-base font-bold text-slate-900 dark:text-white mb-2 leading-snug">${p.name}</h2>
               <p class="text-xs text-slate-500 mb-3">Proveedor: <strong class="text-slate-800 dark:text-slate-200">${p.supplier_name || 'N/A'}</strong></p>
 
-              <div class="grid grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit text-center font-mono">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit text-center font-mono">
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Costo Dropi</span>
                   <span class="text-xs font-bold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
