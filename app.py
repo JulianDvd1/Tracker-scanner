@@ -134,34 +134,46 @@ def get_stats():
     """)
     total_market_gmv = c.fetchone()[0]
 
+    # Joyas Ocultas con margen superior a $50k COP
+    c.execute("SELECT count(*) FROM products WHERE margin >= 50000")
+    hidden_gems_count = c.fetchone()[0]
+
+    # Fecha/Hora real del último escaneo completado en GitHub Actions (de la base de datos)
+    c.execute("SELECT max(updated_at) FROM products")
+    row_updated = c.fetchone()
+    
     conn.close()
 
-    # Cálculo de última sincronización del archivo catalog.db (Hora Colombia UTC-5)
     last_sync_human = "Recientemente"
     last_sync_time = ""
     next_sync_human = "Cada 2 horas (:15)"
-    if os.path.exists(DB_PATH):
-        mtime = os.path.getmtime(DB_PATH)
-        utc_dt = datetime.datetime.fromtimestamp(mtime, datetime.timezone.utc)
-        colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
-        colombia_dt = utc_dt.astimezone(colombia_tz)
-        last_sync_time = colombia_dt.strftime("%I:%M %p")
 
-        now_colombia = datetime.datetime.now(colombia_tz)
-        diff_mins = max(0, int((now_colombia - colombia_dt).total_seconds() / 60))
-        if diff_mins < 2:
-            last_sync_human = "Hace un momento"
-        elif diff_mins < 60:
-            last_sync_human = f"Hace {diff_mins} min"
-        else:
-            diff_hours = diff_mins // 60
-            last_sync_human = f"Hace {diff_hours}h {diff_mins % 60}m"
+    if row_updated and row_updated[0]:
+        try:
+            raw_ts = str(row_updated[0]).replace('T', ' ')
+            utc_dt = datetime.datetime.strptime(raw_ts[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc)
+            colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+            colombia_dt = utc_dt.astimezone(colombia_tz)
+            last_sync_time = colombia_dt.strftime("%I:%M %p")
+
+            now_colombia = datetime.datetime.now(colombia_tz)
+            diff_mins = max(0, int((now_colombia - colombia_dt).total_seconds() / 60))
+            if diff_mins < 2:
+                last_sync_human = "Hace un momento"
+            elif diff_mins < 60:
+                last_sync_human = f"Hace {diff_mins} min"
+            else:
+                diff_hours = diff_mins // 60
+                last_sync_human = f"Hace {diff_hours}h {diff_mins % 60}m"
+        except Exception:
+            last_sync_human = "Recientemente"
 
     return {
         "total_products": total_products,
         "total_sales_events": total_sales_events,
         "total_units_sold": total_units_sold,
         "winning_products_count": winning_products_count,
+        "hidden_gems_count": hidden_gems_count,
         "total_market_gmv": total_market_gmv,
         "top_categories": categories,
         "last_sync_human": last_sync_human,
