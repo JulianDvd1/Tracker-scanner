@@ -3,6 +3,7 @@ import glob
 import sqlite3
 import zipfile
 import time
+import datetime
 import requests
 
 MASTER_DB = "catalog.db"
@@ -204,6 +205,20 @@ def merge_all_shards():
     zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
     print(f" - Archivo comprimido generado: {zip_path} ({zip_size_mb:.2f} MB)")
     print(f"=======================================================\n")
+
+    # Generar nota detallada con hora colombiana para GitHub Releases
+    colombia_dt = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-5)))
+    hora_colombia_str = colombia_dt.strftime("%Y-%m-%d %I:%M:%S %p")
+    release_note = f"""## 🚀 Catálogo Dropi Colombia Consolidado (50k)
+- 📅 **Último Escaneo:** {hora_colombia_str} (Hora Colombia)
+- 📦 **Productos en Catálogo:** {unique_prods:,}
+- 📈 **Nuevas Ventas Detectadas:** {total_sales_detected:,}
+- 💾 **Archivo Base de Datos:** `catalog.db` ({zip_size_mb:.2f} MB)
+
+*Generado automáticamente por el clúster multi-OS de GitHub Actions.*
+"""
+    with open("release_body.md", "w", encoding="utf-8") as f:
+        f.write(release_note)
 
 if __name__ == "__main__":
     merge_all_shards()

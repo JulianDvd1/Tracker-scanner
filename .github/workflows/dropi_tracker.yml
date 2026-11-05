@@ -100,7 +100,14 @@ jobs:
         with:
           tag_name: "v1.0-data"
           name: "Catálogo Dropi Colombia Automatizado (50k)"
-          body: "Base de datos consolidada con 50.000 productos auditados de Dropi Colombia."
+          body_path: release_body.md
           files: catalog.db.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resumen en GitHub Actions
+        if: always()
+        run: |
+          if [ -f release_body.md ]; then
+            cat release_body.md >> $GITHUB_STEP_SUMMARY
+          fi
