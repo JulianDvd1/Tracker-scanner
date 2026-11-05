@@ -963,43 +963,41 @@
             </div>
 
             <!-- Botones Espía Multi-Plataforma -->
-            <div class="space-y-2">
+            <div class="space-y-2 mt-auto pt-2">
               <div class="grid grid-cols-2 gap-2">
                 <a 
                   href="${metaUrl}" 
                   target="_blank" 
-                  class="flex items-center justify-center gap-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] dark:text-[#4294ff] hover:text-white text-xs font-bold py-2 rounded-xl border border-[#1877F2]/30 hover:border-[#1877F2] shadow-xs transition active:scale-98"
+                  class="flex items-center justify-center gap-1.5 bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] dark:text-[#4294ff] hover:text-white text-[11px] font-bold py-2 px-1 rounded-xl border border-[#1877F2]/30 hover:border-[#1877F2] shadow-xs transition active:scale-98 whitespace-nowrap leading-none"
                   title="Ver anuncios en Meta Ads"
                 >
-                  <i class="fa-brands fa-meta text-xs"></i>
-                  Meta Ads
+                  <i class="fa-brands fa-meta text-xs shrink-0"></i>
+                  <span>Meta Ads</span>
                 </a>
 
                 <button 
                   onclick="openProductModal(${p.id})"
-                  class="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white text-xs font-bold py-2 rounded-xl border border-indigo-500/30 hover:border-indigo-600 shadow-xs transition active:scale-98"
+                  class="flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-600 dark:text-indigo-400 hover:text-white text-[11px] font-bold py-2 px-1 rounded-xl border border-indigo-500/30 hover:border-indigo-600 shadow-xs transition active:scale-98 whitespace-nowrap leading-none"
+                  title="Ver ventas diarias"
                 >
-                  <i class="fa-solid fa-chart-line text-xs"></i>
-                  Ventas Diarias
+                  <i class="fa-solid fa-chart-line text-xs shrink-0"></i>
+                  <span>Ventas Diarias</span>
                 </button>
               </div>
 
               <!-- Espías Rápidos Auxiliares (TikTok, Trends, Lens) -->
-              <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1 font-medium">
-                <span>Espiar en:</span>
-                <div class="flex items-center gap-3">
-                  <a href="${tiktokUrl}" target="_blank" class="hover:text-black dark:hover:text-white transition flex items-center gap-1" title="Buscar videos en TikTok">
-                    <i class="fa-brands fa-tiktok text-xs"></i> TikTok
-                  </a>
-                  <span class="text-slate-600 dark:text-slate-700">•</span>
-                  <a href="${googleTrendsUrl}" target="_blank" class="hover:text-blue-500 transition flex items-center gap-1" title="Tendencias Google Colombia">
-                    <i class="fa-brands fa-google text-xs text-blue-500"></i> Trends
-                  </a>
-                  <span class="text-slate-600 dark:text-slate-700">•</span>
-                  <a href="${lensUrl}" target="_blank" class="hover:text-amber-500 transition flex items-center gap-1" title="Buscar precio fábrica en Google Lens">
-                    <i class="fa-solid fa-magnifying-glass-arrow-right text-xs text-amber-500"></i> Lens
-                  </a>
-                </div>
+              <div class="flex items-center justify-center gap-3 text-[11px] text-slate-400 pt-1.5 font-medium border-t border-slate-100 dark:border-slate-800/60">
+                <a href="${tiktokUrl}" target="_blank" class="hover:text-black dark:hover:text-white transition flex items-center gap-1 shrink-0" title="Buscar videos en TikTok">
+                  <i class="fa-brands fa-tiktok text-xs"></i> TikTok
+                </a>
+                <span class="text-slate-600 dark:text-slate-700">•</span>
+                <a href="${googleTrendsUrl}" target="_blank" class="hover:text-blue-500 transition flex items-center gap-1 shrink-0" title="Tendencias Google Colombia">
+                  <i class="fa-brands fa-google text-xs text-blue-500"></i> Trends
+                </a>
+                <span class="text-slate-600 dark:text-slate-700">•</span>
+                <a href="${lensUrl}" target="_blank" class="hover:text-amber-500 transition flex items-center gap-1 shrink-0" title="Buscar precio fábrica en Google Lens">
+                  <i class="fa-solid fa-magnifying-glass-arrow-right text-xs text-amber-500"></i> Lens
+                </a>
               </div>
             </div>
 
