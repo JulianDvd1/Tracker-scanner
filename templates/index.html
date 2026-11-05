@@ -88,22 +88,23 @@
 <body class="flex h-screen overflow-hidden antialiased transition-colors duration-200">
 
   <!-- ================= SIDEBAR ================= -->
-  <aside class="w-64 app-sidebar border-r flex flex-col justify-between shrink-0 select-none hidden lg:flex z-30 transition-colors">
-    <div>
-      <!-- Brand -->
-      <div class="h-16 flex items-center px-6 border-b border-inherit gap-3">
-        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30">
-          <i class="fa-solid fa-bolt text-sm"></i>
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="font-heading font-black text-slate-900 dark:text-white tracking-tight text-base">Dropi<span class="text-indigo-600">Spy</span></span>
-            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-mono">ELITE</span>
-          </div>
-          <p class="text-[10px] text-slate-400 font-medium">Radar de Ventas Dropi COD</p>
-        </div>
+  <aside class="w-64 app-sidebar border-r flex flex-col shrink-0 select-none hidden lg:flex z-30 transition-colors h-screen overflow-hidden">
+    <!-- Brand Fijo Superior -->
+    <div class="h-16 flex items-center px-6 border-b border-inherit gap-3 shrink-0">
+      <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-600/30">
+        <i class="fa-solid fa-bolt text-sm"></i>
       </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <span class="font-heading font-black text-slate-900 dark:text-white tracking-tight text-base">Dropi<span class="text-indigo-600">Spy</span></span>
+          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-mono">ELITE</span>
+        </div>
+        <p class="text-[10px] text-slate-400 font-medium">Radar de Ventas Dropi COD</p>
+      </div>
+    </div>
 
+    <!-- Contenido Scrollable de Navegación y Categorías -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar">
       <!-- Navigation Tabs -->
       <div class="p-4 space-y-1">
         <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Vistas Principales</div>
@@ -174,18 +175,18 @@
       </div>
     </div>
 
-    <!-- Footer Stats -->
-    <div class="p-4 border-t border-inherit bg-slate-50/50 dark:bg-slate-900/50">
+    <!-- Footer Stats (Fijo Siempre Visible) -->
+    <div class="p-4 border-t border-inherit bg-slate-50/90 dark:bg-slate-900/90 shrink-0 z-10 shadow-lg">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-xs">
+        <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-sm shadow-xs">
           <i class="fa-solid fa-database"></i>
         </div>
         <div class="flex-1 truncate">
           <div class="text-[11px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             <span>Dropi Colombia</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
-          <div class="text-[10px] text-slate-400 font-mono" id="sidebar-total-prods">3,425 auditados</div>
+          <div class="text-xs text-emerald-600 dark:text-emerald-400 font-mono font-bold" id="sidebar-total-prods">Cargando catálogo...</div>
         </div>
       </div>
     </div>
@@ -249,7 +250,7 @@
     </div>
 
     <!-- Body Container -->
-    <main class="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+    <main id="main-scroll-container" class="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
       
       <!-- ================= VISTA 1: WINNING RADAR ================= -->
       <div id="view-radar" class="space-y-6">
@@ -269,18 +270,22 @@
             </p>
           </div>
 
-          <div class="grid grid-cols-3 gap-3 shrink-0">
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[105px]">
-              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Unidades</span>
-              <span class="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="banner-units">--</span>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]">
+              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Catálogo Base</span>
+              <span class="text-base font-bold text-slate-900 dark:text-white font-mono" id="banner-total-prods">--</span>
             </div>
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[105px]">
-              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Ganadores</span>
-              <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400 font-mono" id="banner-winners">--</span>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]">
+              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Unidades</span>
+              <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="banner-units">--</span>
             </div>
-            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[105px]">
-              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Volumen</span>
-              <span class="text-lg font-bold text-slate-900 dark:text-white font-mono" id="banner-gmv">--</span>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]">
+              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Ganadores</span>
+              <span class="text-base font-bold text-indigo-600 dark:text-indigo-400 font-mono" id="banner-winners">--</span>
+            </div>
+            <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3 text-center min-w-[95px]">
+              <span class="text-[9px] text-slate-400 block uppercase font-bold tracking-wider">Volumen</span>
+              <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="banner-gmv">--</span>
             </div>
           </div>
         </div>
@@ -348,25 +353,37 @@
               </select>
             </div>
 
-            <div class="flex items-center gap-2 ml-auto">
-              <span class="text-xs text-slate-400 font-medium">Ordenar:</span>
-              <select id="sort-select" class="app-input border text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
-                <option value="sales">🔥 Más Vendidos</option>
-                <option value="margin">💰 Mayor Margen</option>
-                <option value="newest">⚡ Más Recientes</option>
-                <option value="price_asc">📉 Menor Costo</option>
-                <option value="price_desc">📈 Mayor Costo</option>
-              </select>
+            <div class="flex items-center gap-3 ml-auto flex-wrap">
+              <span class="text-xs text-slate-500 font-mono hidden sm:inline" id="catalog-counter-badge">Cargando catálogo...</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs text-slate-400 font-medium">Ordenar:</span>
+                <select id="sort-select" class="app-input border text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
+                  <option value="sales">🔥 Más Vendidos</option>
+                  <option value="margin">💰 Mayor Margen</option>
+                  <option value="newest">⚡ Más Recientes</option>
+                  <option value="price_asc">📉 Menor Costo</option>
+                  <option value="price_desc">📈 Mayor Costo</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Products Grid -->
-        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16">
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-6">
           <div class="col-span-full py-24 text-center text-slate-400">
             <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
             <p class="text-sm">Analizando catálogo y velocidad diaria...</p>
           </div>
+        </div>
+
+        <!-- Paginación / Scroll Infinito Inteligente -->
+        <div id="pagination-container" class="py-8 flex flex-col items-center justify-center gap-3 pb-16">
+          <button id="btn-load-more" onclick="loadMoreProducts()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition cursor-pointer">
+            <i class="fa-solid fa-angles-down"></i>
+            <span>Cargar más productos (+60)</span>
+          </button>
+          <span class="text-xs text-slate-400 font-mono" id="pagination-info">Mostrando productos...</span>
         </div>
 
       </div>
@@ -714,8 +731,11 @@
       try {
         const res = await fetch('/api/stats');
         const data = await res.json();
+        const totalProds = Number(data.total_products || 0).toLocaleString('es-CO');
         document.getElementById('top-units-metric').innerText = Number(data.total_units_sold).toLocaleString('es-CO') + ' unds';
-        document.getElementById('sidebar-total-prods').innerText = Number(data.total_products).toLocaleString('es-CO') + ' auditados';
+        document.getElementById('sidebar-total-prods').innerText = totalProds + ' auditados';
+        const bannerTotal = document.getElementById('banner-total-prods');
+        if (bannerTotal) bannerTotal.innerText = totalProds;
         document.getElementById('banner-units').innerText = Number(data.total_units_sold).toLocaleString('es-CO');
         document.getElementById('banner-winners').innerText = Number(data.winning_products_count).toLocaleString('es-CO');
         document.getElementById('banner-gmv').innerText = '$' + (Number(data.total_market_gmv) / 1000000).toFixed(1) + 'M';
@@ -917,43 +937,112 @@
       `;
     }
 
-    // Cargar Catálogo Radar
-    async function loadProducts() {
+    // Cargar Catálogo Radar con Paginación Infinita
+    let currentOffset = 0;
+    const pageSize = 48;
+    let totalMatching = 0;
+    let isLoadingMore = false;
+
+    async function loadProducts(append = false) {
       const grid = document.getElementById('products-grid');
-      grid.innerHTML = `
-        <div class="col-span-full py-24 text-center text-slate-400">
-          <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
-          <p class="text-sm">Analizando catálogo y métricas...</p>
-        </div>
-      `;
+      const pagContainer = document.getElementById('pagination-container');
+      
+      if (!append) {
+        currentOffset = 0;
+        cachedProducts = [];
+        grid.innerHTML = `
+          <div class="col-span-full py-24 text-center text-slate-400">
+            <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
+            <p class="text-sm">Analizando catálogo y velocidad diaria...</p>
+          </div>
+        `;
+      } else {
+        isLoadingMore = true;
+        const btn = document.getElementById('btn-load-more');
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Cargando más productos...';
+      }
 
       try {
-        const url = `/api/products?category=${encodeURIComponent(currentCategory)}&tier=${encodeURIComponent(currentTier)}&min_margin=${currentMargin}&sort_by=${currentSort}&search=${encodeURIComponent(searchQuery)}&limit=60`;
+        const url = `/api/products?category=${encodeURIComponent(currentCategory)}&tier=${encodeURIComponent(currentTier)}&min_margin=${currentMargin}&sort_by=${currentSort}&search=${encodeURIComponent(searchQuery)}&limit=${pageSize}&offset=${currentOffset}`;
         const res = await fetch(url);
         const data = await res.json();
-        cachedProducts = data.products || [];
+        const newProducts = data.products || [];
+        totalMatching = data.total_matching || newProducts.length;
 
-        let filtered = cachedProducts;
+        if (append) {
+          cachedProducts.push(...newProducts);
+        } else {
+          cachedProducts = newProducts;
+        }
+
+        let filtered = newProducts;
         if (currentBadge !== 'all') {
           filtered = filtered.filter(p => p.badge_type === currentBadge);
         }
 
-        if (filtered.length === 0) {
-          grid.innerHTML = `
-            <div class="col-span-full py-20 text-center app-card rounded-2xl">
-              <i class="fa-solid fa-box-open text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
-              <p class="text-base text-slate-800 dark:text-white font-bold">No se encontraron productos</p>
-              <p class="text-xs text-slate-500 mt-1">Prueba cambiando los filtros o buscando otra palabra clave.</p>
-            </div>
-          `;
-          return;
+        if (!append) {
+          if (filtered.length === 0) {
+            grid.innerHTML = `
+              <div class="col-span-full py-20 text-center app-card rounded-2xl">
+                <i class="fa-solid fa-box-open text-4xl mb-3 text-slate-300 dark:text-slate-600"></i>
+                <p class="text-base text-slate-800 dark:text-white font-bold">No se encontraron productos</p>
+                <p class="text-xs text-slate-500 mt-1">Prueba cambiando los filtros o buscando otra palabra clave.</p>
+              </div>
+            `;
+            if (pagContainer) pagContainer.classList.add('hidden');
+            return;
+          }
+          grid.innerHTML = filtered.map((p, i) => createProductCardHtml(p, i)).join('');
+        } else {
+          const newHtml = filtered.map((p, i) => createProductCardHtml(p, currentOffset + i)).join('');
+          grid.insertAdjacentHTML('beforeend', newHtml);
         }
 
-        grid.innerHTML = filtered.map((p, i) => createProductCardHtml(p, i)).join('');
+        // Actualizar contadores
+        const loadedCount = cachedProducts.length;
+        const counterBadge = document.getElementById('catalog-counter-badge');
+        if (counterBadge) {
+          counterBadge.innerText = `Mostrando ${loadedCount.toLocaleString('es-CO')} de ${totalMatching.toLocaleString('es-CO')} productos`;
+        }
+
+        if (pagContainer) {
+          if (loadedCount >= totalMatching || newProducts.length < pageSize) {
+            pagContainer.innerHTML = `<span class="text-xs text-slate-400 font-mono py-4">✨ Has explorado los ${totalMatching.toLocaleString('es-CO')} productos disponibles</span>`;
+          } else {
+            pagContainer.classList.remove('hidden');
+            pagContainer.innerHTML = `
+              <button id="btn-load-more" onclick="loadMoreProducts()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition cursor-pointer">
+                <i class="fa-solid fa-angles-down"></i>
+                <span>Cargar más productos (+${pageSize})</span>
+              </button>
+              <span class="text-[11px] text-slate-400 font-mono" id="pagination-info">Mostrando ${loadedCount.toLocaleString('es-CO')} de ${totalMatching.toLocaleString('es-CO')} productos</span>
+            `;
+          }
+        }
       } catch (err) {
         console.error(err);
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-rose-500">Error al cargar productos.</div>`;
+        if (!append) grid.innerHTML = `<div class="col-span-full py-12 text-center text-rose-500">Error al cargar productos.</div>`;
+      } finally {
+        isLoadingMore = false;
       }
+    }
+
+    function loadMoreProducts() {
+      if (isLoadingMore) return;
+      currentOffset += pageSize;
+      loadProducts(true);
+    }
+
+    // Scroll Infinito automático
+    const scrollContainer = document.getElementById('main-scroll-container');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', function() {
+        if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 400) {
+          if (!isLoadingMore && cachedProducts.length < totalMatching) {
+            loadMoreProducts();
+          }
+        }
+      });
     }
 
     // ================= SECCION KALODATA & DROPDATA LEADERBOARD =================

@@ -136,15 +136,19 @@ def get_stats():
 
     conn.close()
 
-    # Cálculo de última sincronización del archivo catalog.db
+    # Cálculo de última sincronización del archivo catalog.db (Hora Colombia UTC-5)
     last_sync_human = "Recientemente"
     last_sync_time = ""
     next_sync_human = "Cada 2 horas (:15)"
     if os.path.exists(DB_PATH):
         mtime = os.path.getmtime(DB_PATH)
-        dt = datetime.datetime.fromtimestamp(mtime)
-        last_sync_time = dt.strftime("%I:%M %p")
-        diff_mins = max(0, int((datetime.datetime.now() - dt).total_seconds() / 60))
+        utc_dt = datetime.datetime.fromtimestamp(mtime, datetime.timezone.utc)
+        colombia_tz = datetime.timezone(datetime.timedelta(hours=-5))
+        colombia_dt = utc_dt.astimezone(colombia_tz)
+        last_sync_time = colombia_dt.strftime("%I:%M %p")
+
+        now_colombia = datetime.datetime.now(colombia_tz)
+        diff_mins = max(0, int((now_colombia - colombia_dt).total_seconds() / 60))
         if diff_mins < 2:
             last_sync_human = "Hace un momento"
         elif diff_mins < 60:
@@ -420,6 +424,24 @@ def list_products(
     query += " LIMIT ? OFFSET ?"
     params.extend([limit, offset])
 
+    # Conteo total para paginación y visibilidad completa
+    count_query = "SELECT count(*) FROM products p WHERE p.margin >= ?"
+    count_params = [min_margin]
+    if category and category != "all":
+        count_query += " AND p.category = ?"
+        count_params.append(category)
+    if tier and tier != "all":
+        count_query += " AND p.supplier_tier = ?"
+        count_params.append(tier)
+    if supplier and supplier != "all":
+        count_query += " AND p.supplier_name = ?"
+        count_params.append(supplier)
+    if search:
+        count_query += " AND (p.name LIKE ? OR p.supplier_name LIKE ? OR p.id LIKE ?)"
+        count_params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+    c.execute(count_query, count_params)
+    total_matching = c.fetchone()[0]
+
     c.execute(query, params)
     rows = []
     for r in c.fetchall():
@@ -456,7 +478,7 @@ def list_products(
         rows.append(d)
 
     conn.close()
-    return {"products": rows, "count": len(rows), "offset": offset, "limit": limit}
+    return {"products": rows, "count": len(rows), "total_matching": total_matching, "offset": offset, "limit": limit}
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard_view():
