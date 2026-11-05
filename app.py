@@ -9,7 +9,7 @@ from typing import Optional, List
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="DropiSpy Elite Pro", version="3.5.0")
+app = FastAPI(title="DropiSpy Elite Pro", version="3.6.0")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "catalog.db")
 CLOUDFRONT_BASE = "https://d39ru7awumhhs2.cloudfront.net/"

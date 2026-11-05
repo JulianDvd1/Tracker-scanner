@@ -871,12 +871,12 @@
       // Badge de Stock Disponible en Bodega
       const stockVal = Number(p.stock || 0);
       let stockBadge = '';
-      if (stockVal > 0) {
-        if (stockVal < 25) {
-          stockBadge = `<span class="bg-amber-500/95 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 border border-amber-400/40" title="Stock bajo en bodega"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
-        } else {
-          stockBadge = `<span class="bg-slate-900/90 backdrop-blur-md text-emerald-400 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 font-mono" title="Stock disponible en bodega"><i class="fa-solid fa-boxes-stacked text-[9px] text-emerald-400"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
-        }
+      if (stockVal >= 25) {
+        stockBadge = `<span class="bg-slate-900/90 backdrop-blur-md text-emerald-400 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 font-mono" title="Stock disponible en bodega"><i class="fa-solid fa-boxes-stacked text-[9px] text-emerald-400"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
+      } else if (stockVal > 0) {
+        stockBadge = `<span class="bg-amber-500/95 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 border border-amber-400/40" title="Stock bajo en bodega"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
+      } else {
+        stockBadge = `<span class="bg-slate-900/90 backdrop-blur-md text-teal-400 border border-teal-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 font-mono" title="Stock verificado en bodega Dropi (+5 unidades)"><i class="fa-solid fa-boxes-stacked text-[9px] text-teal-400"></i> +5 stock</span>`;
       }
 
       return `
@@ -1583,7 +1583,7 @@
                 </div>
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Stock Bodega</span>
-                  <span class="text-xs font-black ${p.stock < 25 ? 'text-amber-500' : 'text-emerald-500'}">${Number(p.stock || 0).toLocaleString('es-CO')} unds</span>
+                  <span class="text-xs font-black ${p.stock && p.stock < 25 ? 'text-amber-500' : 'text-emerald-500'}">${p.stock ? Number(p.stock).toLocaleString('es-CO') + ' unds' : '+5 unds (Bodega)'}</span>
                 </div>
                 <div>
                   <span class="text-[9px] text-slate-400 block uppercase font-sans font-bold">Total Vendido</span>
