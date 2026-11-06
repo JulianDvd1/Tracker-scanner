@@ -103,8 +103,7 @@ def fetch_page_direct(
         "keywords": "",
         "active": True,
         "no_count": True,
-        "integration": True,
-        "userVerified": True
+        "integration": True
     }
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
@@ -216,11 +215,17 @@ def run_shard(
                 elif is_veri or "VERIFICADO" in tier_raw:
                     tier = "VERIFICADO"
                 else:
-                    # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO
-                    continue
+                    tier = "PROVEEDOR DROPI"
 
                 sale_price = float(item.get("sale_price") or 0)
-                sug_price = float(item.get("suggested_price") or sale_price)
+                if sale_price <= 0:
+                    continue
+
+                sug_price = float(item.get("suggested_price") or 0)
+                if sug_price <= sale_price:
+                    # Si el proveedor no fijó un precio sugerido, estimamos un precio razonable de mercado para dropshipping (+35% o +$20k)
+                    sug_price = max(sale_price + 20000, round(sale_price * 1.35, -2))
+
                 margin = sug_price - sale_price
 
                 # Filtro de margen mínimo
@@ -307,8 +312,8 @@ if __name__ == "__main__":
     parser.add_argument("--total-shards", type=int, default=1, help="Total de Shards paralelos (default 1)")
     parser.add_argument("--start-page", type=int, default=None, help="Página inicial manual")
     parser.add_argument("--end-page", type=int, default=None, help="Página final manual")
-    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=1250, help="Total de páginas global (default 1250)")
-    parser.add_argument("--token-index", type=int, default=1, help="Número de token a usar (1 a 4)")
+    parser.add_argument("--pages", "--total-pages", dest="total_pages", type=int, default=1730, help="Total de páginas global (default 1730)")
+    parser.add_argument("--token-index", type=int, default=1, help="Número de token a usar (1 a 6)")
     parser.add_argument("--token", type=str, default="", help="Token explícito")
     parser.add_argument("--db-name", type=str, default="", help="Nombre del archivo SQLite")
 

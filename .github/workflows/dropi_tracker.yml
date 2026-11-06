@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       pages:
-        description: 'Cantidad de páginas a escanear (20 = prueba rápida | 1250 = ~50.000 productos)'
+        description: 'Cantidad de páginas a escanear (20 = prueba rápida | 1730 = Catálogo 100% Completo ~69.000 productos)'
         required: true
-        default: '1250'
+        default: '1730'
 
 concurrency:
   group: dropi-master-scanner
@@ -30,14 +30,20 @@ jobs:
             os: ubuntu-latest
             token_index: 1
           - shard: 1
-            os: windows-latest
+            os: ubuntu-latest
             token_index: 2
           - shard: 2
-            os: macos-latest
+            os: ubuntu-latest
             token_index: 3
           - shard: 3
-            os: ubuntu-22.04
+            os: ubuntu-latest
             token_index: 4
+          - shard: 4
+            os: ubuntu-latest
+            token_index: 5
+          - shard: 5
+            os: ubuntu-latest
+            token_index: 6
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -56,10 +62,12 @@ jobs:
           DROPI_TOKEN_2: ${{ secrets.DROPI_TOKEN_2 }}
           DROPI_TOKEN_3: ${{ secrets.DROPI_TOKEN_3 }}
           DROPI_TOKEN_4: ${{ secrets.DROPI_TOKEN_4 }}
+          DROPI_TOKEN_5: ${{ secrets.DROPI_TOKEN_5 }}
+          DROPI_TOKEN_6: ${{ secrets.DROPI_TOKEN_6 }}
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 4 --pages ${{ github.event.inputs.pages || '1250' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
+          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 6 --pages ${{ github.event.inputs.pages || '1730' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
 
       - name: Subir Base de Datos del Shard
         uses: actions/upload-artifact@v4
