@@ -118,10 +118,9 @@ def fetch_page_direct(
             elapsed = time.time() - t0
 
             if r.status_code == 200:
-                # Marcapasos adaptativo (reloj delta):
-                # Si el request tardó 3.2s, solo dormimos 5.5 - 3.2 = 2.3s
-                espera = max(0.5, 5.5 - elapsed)
-                time.sleep(espera)
+                # Marcapasos estricto de seguridad:
+                # 5.5s de enfriamiento garantizado entre peticiones para no saturar la IP
+                time.sleep(5.5)
 
                 try:
                     data = r.json()
