@@ -215,15 +215,18 @@ def run_shard(
                 elif is_veri or "VERIFICADO" in tier_raw:
                     tier = "VERIFICADO"
                 else:
-                    tier = "PROVEEDOR DROPI"
+                    # PROVEEDOR BÁSICO O NO VERIFICADO -> DESCARTADO
+                    # (Solo aceptamos proveedores Verificados, Premium y Premium Exclusivo)
+                    continue
 
                 sale_price = float(item.get("sale_price") or 0)
                 if sale_price <= 0:
                     continue
 
                 sug_price = float(item.get("suggested_price") or 0)
-                if sug_price <= sale_price:
-                    # Si el proveedor no fijó un precio sugerido, estimamos un precio razonable de mercado para dropshipping (+35% o +$20k)
+                # Si el proveedor puso precio sugerido igual o menor al costo, o un margen menor al mínimo,
+                # corregimos calculando un margen saludable de dropshipping (+35% o +$20k) para no descartar el producto verificado
+                if (sug_price - sale_price) < MIN_MARGIN:
                     sug_price = max(sale_price + 20000, round(sale_price * 1.35, -2))
 
                 margin = sug_price - sale_price
