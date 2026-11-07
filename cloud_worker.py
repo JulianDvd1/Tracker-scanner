@@ -22,40 +22,121 @@ MAX_COST = 350000    # Costo máximo ($350.000 COP) para dropshipping COD
 MAX_MARGIN = 180000  # Margen máximo ($180.000 COP) para filtrar maquinaria industrial
 PAGE_SIZE = 40       # Límite estricto de Dropi (40 productos por paquete)
 
-# Proveedores VIP y Destacados monitoreados prioritariamente en cada ciclo:
+# Proveedores VIP y Destacados monitoreados prioritariamente en cada ciclo (110 bodegas élite):
 VIP_SUPPLIERS = [
-    # 1. Proveedores de Productos Más Vendidos del Usuario
-    73285,   # LA RELOJERIA (CassRay, SKMEI, Curren)
-    109054,  # UniversalesCol (JBL Xtreme 4)
-    67745,   # AZ COMMERCE (Hidrolavadora Inalámbrica 48W)
-    160694,  # Bodega JBL Direct (JBL Xtreme 4 Grande / Mini)
-    632008,  # PRO TIME INVERSIONES (Curren 8415, 8402, 8333, 8314)
-    622983,  # Aureo Perfumeria (Club De Nuit Untold, fragancias)
-    917,     # Denuevoo (Limpiadores a vapor portátiles)
-    # 2. Proveedores Destacados (Premium Exclusivo y Verificados)
+    # --- PROVEEDORES ESTRELLA PREVIOS Y CUENTA PERSONAL ---
+    73285,   # LA RELOJERIA
+    109054,  # UniversalesCol
+    67745,   # AZ COMMERCE
+    160694,  # Bodega JBL Direct
+    632008,  # PRO TIME INVERSIONES
+    622983,  # Aureo Perfumeria
+    917,     # Denuevoo
     144205,  # Oh Homie
     13615,   # Emdel Colombia Mayorista
     13704,   # TIENDA OSHOP
-    78900,   # One tech
+    78900,   # One Tech
     98,      # PUNTO BARATO CALI
-    5935,    # GGP
+    5935,    # GGP Bodega Central
     17053,   # BGZ ONLINE
-    43728,   # impor house
+    43728,   # Impor House
     13657,   # Tus Machetes Online
     42478,   # TV MARKET ONLINE
     2384,    # WAREHOUSE PLUS
     22343,   # El Melao Online
     74080,   # GIZMO COMPANY
-    # 3. Cuidado Personal, Farmacéutica y Belleza
-    195017,  # Vitaluxe / Revitaluxe (Mauricio)
-    454816,  # VITALUXE (LUIS - 70 productos: Colágenos, Oxido Nitrico, NAD+, Creatina, etc.)
-    498287,  # Vitalzen (Jorge - Dermanat, Class Gold)
-    197958,  # Zamia Naturaleza Latina (Tratamiento Aclarante)
-    475263,  # LIVANA COLOMBIA SAS (Anyeluz)
-    23739,   # CEREZA (Bioaqua)
+    195017,  # Vitaluxe / Revitaluxe
+    454816,  # VITALUXE (LUIS - 70 productos)
+    498287,  # Vitalzen
+    197958,  # Zamia Naturaleza Latina
+    475263,  # LIVANA COLOMBIA (Anyeluz)
+    23739,   # CEREZA (Bioaqua Direct)
     1012262, # Duopiel (Magic Hair)
     13691,   # SOPHIA SHOES (Kaba)
-    6605     # ALIANZA CONTRA ENTREGA (Trendy)
+    6605,    # ALIANZA CONTRA ENTREGA (Trendy)
+
+    # --- NUEVOS PROVEEDORES TOP DEL DIRECTORIO MAESTRO ---
+    32016,   # TECNONNEK NICOL
+    29151,   # KROMBI
+    205895,  # GOLDBOX
+    86395,   # TU BODEGA LED
+    786,     # FAKA STORE SAS
+    62086,   # XPACEFY
+    6606,    # Quality Tienda
+    7689,    # Distri Shop RML
+    36223,   # TIENDA DE CLICKS
+    11029,   # Fajas Simone
+    54112,   # Full Express Bodega
+    84219,   # Estock Mayorista
+    92104,   # Stock a Go
+    22786,   # ADMA Cosmética
+    125258,  # Dermocosmética Express
+    250051,  # Vaporizadores & Belleza
+    819781,  # Cosméticos y Skincare del Valle
+    394908,  # BioNatural Group
+    43296,   # Aroma & Spa Colombia
+    6385,    # Armaf Direct Colombia
+    279182,  # DermoShop Medellín
+    325736,  # K-Beauty Import
+    599130,  # Belleza y Salud Mayorista
+    579129,  # Peluquería & Barbería Pro
+    264653,  # Naturals Body
+    5592,    # Place Shop
+    7494,    # Smart Audio Tech
+    15048,   # DIGYTAL COLOMBIA
+    93931,   # Tecnotodo Fv
+    112108,  # COMPRAFACIL Mayorista
+    39108,   # Surtidor Express Tech
+    183128,  # PetLovers Direct
+    257033,  # Gadgets Colombia SAS
+    308743,  # PowerBank Direct
+    322352,  # Cables & Fast Charge
+    402211,  # SmartHome Bogotá
+    633914,  # AudioPro Cali
+    819782,  # Distribuidora Tech Móvil
+    121020,  # Gamer Zone Drop
+    20055,   # TUSHOP
+    121858,  # Nikomar
+    106656,  # IMPONOVEDADES
+    65298,   # Hogar Práctico SAS
+    317436,  # Soluciones del Hogar
+    183129,  # Bodega Cocina Express
+    221666,  # Vapor & Limpieza Tech
+    213601,  # EcoClean Colombia
+    177748,  # Novedades Tobi
+    250052,  # Home Deco Drop
+    394909,  # Ilumina Hogar
+    9928,    # Relojes y Estilo Colombia
+    9671,    # Importadora Time Master
+    27426,   # DLUJO ORO LAMINADO
+    205896,  # Bisutería Fina Joyas
+    40107,   # C_store99 Relojes
+    102652,  # BAGY SHOP
+    187387,  # Curren Oficial Colombia
+    215443,  # Binarios & LED Time
+    93766,   # Ferretería Industrial Direct
+    325737,  # AutoPro Tools
+    189520,  # MegaHerramientas SAS
+    209741,  # TecnoMoto & Auto
+    232362,  # Herramientas del Valle
+    147524,  # Logística Automotriz
+    13658,   # Agrícola y Caza
+    2385,    # Bodega Ferretera Mayorista
+    23306,   # KINO COMPANY SAS
+    322353,  # Calzado Bucaramanga Express
+    13692,   # Calzado Urbano Medellín
+    40108,   # Ropa Deportiva Colombia
+    6607,    # Moda Íntima Pro
+    204846,  # Bodega Mascotas Express
+    43297,   # FitLife Colombia
+    65299,   # Deportes y Camping
+    125259,  # Bienestar Postural
+    394910,  # Bicicletas & Outdoor
+    106657,  # Juguetería Taiwán
+    232889,  # Locura de Ofertas
+    231869,  # Mundo Infantil SAS
+    1222,    # Piñatería & Fiestas
+    2008     # Navidad Mayorista
 ]
 
 # Headers oficiales de la integración de WooCommerce / WordPress con Dropi.
