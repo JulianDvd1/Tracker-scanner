@@ -661,8 +661,14 @@ def list_products(
     params = [min_margin]
 
     if category and category != "all":
-        query += " AND p.category = ?"
-        params.append(category)
+        cat_lower = category.lower().strip()
+        if "juguet" in cat_lower or "niñ" in cat_lower:
+            query += " AND (p.category LIKE '%Juguet%' OR p.category LIKE '%Niñ%' OR p.category LIKE '%Infantil%')"
+        elif "calzado" in cat_lower or "ropa deportiva" in cat_lower:
+            query += " AND (p.category LIKE '%Calzado%' OR p.category LIKE '%Zapato%' OR p.category LIKE '%Tenis%' OR p.category = 'Ropa Deportiva')"
+        else:
+            query += " AND p.category = ?"
+            params.append(category)
 
     if tier and tier != "all":
         query += " AND p.supplier_tier = ?"
@@ -696,8 +702,14 @@ def list_products(
     count_query = "SELECT count(*) FROM products p WHERE p.margin >= ?"
     count_params = [min_margin]
     if category and category != "all":
-        count_query += " AND p.category = ?"
-        count_params.append(category)
+        cat_lower = category.lower().strip()
+        if "juguet" in cat_lower or "niñ" in cat_lower:
+            count_query += " AND (p.category LIKE '%Juguet%' OR p.category LIKE '%Niñ%' OR p.category LIKE '%Infantil%')"
+        elif "calzado" in cat_lower or "ropa deportiva" in cat_lower:
+            count_query += " AND (p.category LIKE '%Calzado%' OR p.category LIKE '%Zapato%' OR p.category LIKE '%Tenis%' OR p.category = 'Ropa Deportiva')"
+        else:
+            count_query += " AND p.category = ?"
+            count_params.append(category)
     if tier and tier != "all":
         count_query += " AND p.supplier_tier = ?"
         count_params.append(tier)

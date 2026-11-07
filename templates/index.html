@@ -106,6 +106,18 @@
     }
     .cascade-item {
       animation: cascadeFadeIn 0.2s ease-out forwards;
+      content-visibility: auto;
+      contain-intrinsic-size: 320px 520px;
+      contain: layout style paint;
+      transform: translateZ(0);
+      will-change: transform;
+    }
+    #products-grid {
+      contain: layout;
+    }
+    #main-scroll-container {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
     }
   </style>
 </head>
@@ -193,6 +205,10 @@
           <span class="text-[10px] text-slate-400 font-mono">259</span>
         </button>
 
+        <button onclick="setCategory('Jugueteria')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
+          <span class="flex items-center gap-2.5"><i class="fa-solid fa-gamepad text-slate-400 text-xs"></i> Juguetería & Niños</span>
+          <span class="text-[10px] text-indigo-500 font-mono font-bold">+3.2k</span>
+        </button>
         <button onclick="setCategory('Ropa Deportiva')" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/40 text-xs text-left transition font-medium">
           <span class="flex items-center gap-2.5"><i class="fa-solid fa-shoe-prints text-slate-400 text-xs"></i> Calzado & Zapatos</span>
           <span class="text-[10px] text-slate-400 font-mono">15+</span>
@@ -386,6 +402,9 @@
             <button onclick="setCategory('Cocina')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
               🍳 Cocina
             </button>
+            <button onclick="setCategory('Jugueteria')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
+              🧸 Juguetería
+            </button>
             <button onclick="setCategory('Ropa Deportiva')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
               👟 Calzado
             </button>
@@ -445,8 +464,11 @@
           </div>
         </div>
 
+        <!-- Centinela nativo para scroll infinito fluido -->
+        <div id="infinite-scroll-sentinel" class="w-full h-8 flex items-center justify-center"></div>
+
         <!-- Paginación / Scroll Infinito Inteligente -->
-        <div id="pagination-container" class="py-8 flex flex-col items-center justify-center gap-3 pb-16">
+        <div id="pagination-container" class="py-4 flex flex-col items-center justify-center gap-3 pb-16">
           <button id="btn-load-more" onclick="loadMoreProducts()" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/20 transition cursor-pointer">
             <i class="fa-solid fa-angles-down"></i>
             <span>Cargar más productos (+60)</span>
@@ -1211,33 +1233,46 @@
       loadProducts(true);
     }
 
-    // Scroll Infinito ultra-fluido (120 FPS / requestAnimationFrame pasivo)
+    // Scroll Infinito de Ultra-Alto Rendimiento con IntersectionObserver C++
     const scrollContainer = document.getElementById('main-scroll-container');
+    let infiniteScrollObserver = null;
+
+    function setupInfiniteScrollObserver() {
+      const sentinel = document.getElementById('infinite-scroll-sentinel');
+      if (!sentinel || !scrollContainer || !('IntersectionObserver' in window)) return;
+      
+      if (infiniteScrollObserver) infiniteScrollObserver.disconnect();
+
+      infiniteScrollObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isLoadingMore && cachedProducts.length < totalMatching) {
+          loadMoreProducts();
+        }
+      }, {
+        root: scrollContainer,
+        rootMargin: '600px 0px 600px 0px',
+        threshold: 0.01
+      });
+
+      infiniteScrollObserver.observe(sentinel);
+    }
+
     if (scrollContainer) {
       let scrollTicking = false;
-      let lastScrollTop = 0;
       const topBtn = document.getElementById('btn-scroll-top');
 
       scrollContainer.addEventListener('scroll', function() {
         if (!scrollTicking) {
           window.requestAnimationFrame(function() {
-            const currentScroll = scrollContainer.scrollTop;
-            if (currentScroll + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 500) {
-              if (!isLoadingMore && cachedProducts.length < totalMatching) {
-                loadMoreProducts();
-              }
-            }
-
             if (topBtn) {
-              if (currentScroll > 450 && lastScrollTop <= 450) {
+              const currentScroll = scrollContainer.scrollTop;
+              if (currentScroll > 450) {
                 topBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-3');
                 topBtn.classList.add('opacity-100', 'translate-y-0');
-              } else if (currentScroll <= 450 && lastScrollTop > 450) {
+              } else {
                 topBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-3');
                 topBtn.classList.remove('opacity-100', 'translate-y-0');
               }
             }
-            lastScrollTop = currentScroll;
             scrollTicking = false;
           });
           scrollTicking = true;
@@ -2048,6 +2083,7 @@
     loadStats();
     loadLiveTicker();
     loadProducts();
+    setupInfiniteScrollObserver();
 
     // Actualización inteligente cada 90 segundos para mantener ultra-fluidez sin saturar CPU
     setInterval(() => {
