@@ -24,119 +24,307 @@ PAGE_SIZE = 40       # Límite estricto de Dropi (40 productos por paquete)
 
 # Proveedores VIP y Destacados monitoreados prioritariamente en cada ciclo (110 bodegas élite):
 VIP_SUPPLIERS = [
-    # --- PROVEEDORES ESTRELLA PREVIOS Y CUENTA PERSONAL ---
-    73285,   # LA RELOJERIA
-    109054,  # UniversalesCol
-    67745,   # AZ COMMERCE
-    160694,  # Bodega JBL Direct
-    632008,  # PRO TIME INVERSIONES
-    622983,  # Aureo Perfumeria
-    917,     # Denuevoo
-    144205,  # Oh Homie
-    13615,   # Emdel Colombia Mayorista
-    13704,   # TIENDA OSHOP
-    78900,   # One Tech
-    98,      # PUNTO BARATO CALI
-    5935,    # GGP Bodega Central
-    17053,   # BGZ ONLINE
-    43728,   # Impor House
-    13657,   # Tus Machetes Online
-    42478,   # TV MARKET ONLINE
-    2384,    # WAREHOUSE PLUS
-    22343,   # El Melao Online
-    74080,   # GIZMO COMPANY
-    195017,  # Vitaluxe / Revitaluxe
-    454816,  # VITALUXE (LUIS - 70 productos)
-    498287,  # Vitalzen
-    197958,  # Zamia Naturaleza Latina
-    475263,  # LIVANA COLOMBIA (Anyeluz)
-    23739,   # CEREZA (Bioaqua Direct)
-    1012262, # Duopiel (Magic Hair)
-    13691,   # SOPHIA SHOES (Kaba)
-    6605,    # ALIANZA CONTRA ENTREGA (Trendy)
-
-    # --- NUEVOS PROVEEDORES TOP DEL DIRECTORIO MAESTRO ---
-    32016,   # TECNONNEK NICOL
-    29151,   # KROMBI
-    205895,  # GOLDBOX
-    86395,   # TU BODEGA LED
-    786,     # FAKA STORE SAS
-    62086,   # XPACEFY
-    6606,    # Quality Tienda
-    7689,    # Distri Shop RML
-    36223,   # TIENDA DE CLICKS
-    11029,   # Fajas Simone
-    54112,   # Full Express Bodega
-    84219,   # Estock Mayorista
-    92104,   # Stock a Go
-    22786,   # ADMA Cosmética
-    125258,  # Dermocosmética Express
-    250051,  # Vaporizadores & Belleza
-    819781,  # Cosméticos y Skincare del Valle
-    394908,  # BioNatural Group
-    43296,   # Aroma & Spa Colombia
-    6385,    # Armaf Direct Colombia
-    279182,  # DermoShop Medellín
-    325736,  # K-Beauty Import
-    599130,  # Belleza y Salud Mayorista
-    579129,  # Peluquería & Barbería Pro
-    264653,  # Naturals Body
-    5592,    # Place Shop
-    7494,    # Smart Audio Tech
-    15048,   # DIGYTAL COLOMBIA
-    93931,   # Tecnotodo Fv
-    112108,  # COMPRAFACIL Mayorista
-    39108,   # Surtidor Express Tech
-    183128,  # PetLovers Direct
-    257033,  # Gadgets Colombia SAS
-    308743,  # PowerBank Direct
-    322352,  # Cables & Fast Charge
-    402211,  # SmartHome Bogotá
-    633914,  # AudioPro Cali
-    819782,  # Distribuidora Tech Móvil
-    121020,  # Gamer Zone Drop
-    20055,   # TUSHOP
-    121858,  # Nikomar
-    106656,  # IMPONOVEDADES
-    65298,   # Hogar Práctico SAS
-    317436,  # Soluciones del Hogar
-    183129,  # Bodega Cocina Express
-    221666,  # Vapor & Limpieza Tech
-    213601,  # EcoClean Colombia
-    177748,  # Novedades Tobi
-    250052,  # Home Deco Drop
-    394909,  # Ilumina Hogar
-    9928,    # Relojes y Estilo Colombia
-    9671,    # Importadora Time Master
-    27426,   # DLUJO ORO LAMINADO
-    205896,  # Bisutería Fina Joyas
-    40107,   # C_store99 Relojes
-    102652,  # BAGY SHOP
-    187387,  # Curren Oficial Colombia
-    215443,  # Binarios & LED Time
-    93766,   # Ferretería Industrial Direct
-    325737,  # AutoPro Tools
-    189520,  # MegaHerramientas SAS
-    209741,  # TecnoMoto & Auto
-    232362,  # Herramientas del Valle
-    147524,  # Logística Automotriz
-    13658,   # Agrícola y Caza
-    2385,    # Bodega Ferretera Mayorista
-    23306,   # KINO COMPANY SAS
-    322353,  # Calzado Bucaramanga Express
-    13692,   # Calzado Urbano Medellín
-    40108,   # Ropa Deportiva Colombia
-    6607,    # Moda Íntima Pro
-    204846,  # Bodega Mascotas Express
-    43297,   # FitLife Colombia
-    65299,   # Deportes y Camping
-    125259,  # Bienestar Postural
-    394910,  # Bicicletas & Outdoor
-    106657,  # Juguetería Taiwán
-    232889,  # Locura de Ofertas
-    231869,  # Mundo Infantil SAS
-    1222,    # Piñatería & Fiestas
-    2008     # Navidad Mayorista
+    # --- TOP 300 PROVEEDORES ÉLITE DE DROPI COLOMBIA ---
+    73285,  # LA RELOJERIA (PREMIUM - 150 prods)
+    109054,  # UniversalesCol (VERIFICADO - 264 prods)
+    67745,  # AZ COMMERCE (PREMIUM - 387 prods)
+    160694,  # EliteDrop (VERIFICADO - 170 prods)
+    632008,  # PRO TIME INVERSIONES (PREMIUM - 664 prods)
+    622983,  # Aureo Perfumeria (PREMIUM - 320 prods)
+    917,  # Denuevoo (VERIFICADO - 376 prods)
+    144205,  # Oh Homie (PREMIUM EXCLUSIVO - 1547 prods)
+    13615,  # Emdel Colombia Mayorista (PREMIUM EXCLUSIVO - 616 prods)
+    13704,  # TIENDA OSHOP (PREMIUM EXCLUSIVO - 307 prods)
+    78900,  # One tech (PREMIUM EXCLUSIVO - 293 prods)
+    98,  # PUNTO BARATO CALI (PREMIUM EXCLUSIVO - 56 prods)
+    5935,  # GGP (PREMIUM EXCLUSIVO - 905 prods)
+    17053,  # BGZ ONLINE (PREMIUM - 1332 prods)
+    43728,  # impor house (PREMIUM - 1598 prods)
+    13657,  # Tus Machetes Online (VERIFICADO - 1504 prods)
+    42478,  # TV MARKET ONLINE (VERIFICADO - 1002 prods)
+    2384,  # WAREHOUSE PLUS (VERIFICADO - 236 prods)
+    22343,  # El Melao Online (PREMIUM - 303 prods)
+    74080,  # GIZMO COMPANY (PREMIUM - 336 prods)
+    195017,  # Proveedor VIP (VIP - 0 prods)
+    454816,  # VITALUXE (PREMIUM EXCLUSIVO - 67 prods)
+    498287,  # Vitalzen (PREMIUM - 208 prods)
+    197958,  # Zamia Naturaleza Latina (VERIFICADO - 1509 prods)
+    475263,  # LIVANA COLOMBIA SAS (VERIFICADO - 189 prods)
+    23739,  # CEREZA (VERIFICADO - 132 prods)
+    1012262,  # Duopiel (PREMIUM - 180 prods)
+    13691,  # SOPHIA SHOES (PREMIUM - 91 prods)
+    6605,  # ALIANZA CONTRA ENTREGA (PREMIUM - 66 prods)
+    32016,  # TECNONNEK NICOL (PREMIUM - 840 prods)
+    29151,  # KROMBI (PREMIUM - 387 prods)
+    205895,  # GOLDBOX (PREMIUM - 239 prods)
+    86395,  # TU BODEGA LED (PREMIUM - 40 prods)
+    786,  # FAKA STORE  SAS (PREMIUM - 193 prods)
+    62086,  # XPACEFY (PREMIUM - 107 prods)
+    6606,  # Quality Tienda (PREMIUM - 372 prods)
+    7689,  # Distri Shop RML (PREMIUM - 184 prods)
+    36223,  # TIENDA DE CLICKS (PREMIUM - 780 prods)
+    11029,  # Proveedor VIP (VIP - 0 prods)
+    54112,  # Proveedor VIP (VIP - 0 prods)
+    84219,  # Proveedor VIP (VIP - 0 prods)
+    92104,  # Proveedor VIP (VIP - 0 prods)
+    22786,  # ADMA (VERIFICADO - 230 prods)
+    125258,  # Shop Colombia (PREMIUM - 119 prods)
+    250051,  # Todo Novedad Centro (PREMIUM - 93 prods)
+    819781,  # LLEVAME ON LINE COLOMBIA (PREMIUM - 74 prods)
+    394908,  # Proveedor VIP (VIP - 0 prods)
+    43296,  # Proveedor VIP (VIP - 0 prods)
+    6385,  # DITRIBUIDORA ALEDAN (VERIFICADO - 179 prods)
+    279182,  # ROGO SHOP (PREMIUM - 9 prods)
+    325736,  # Proveedor VIP (VIP - 0 prods)
+    599130,  # CLOCK COLOMBIA SAS (PREMIUM - 3 prods)
+    579129,  # Proveedor VIP (VIP - 0 prods)
+    264653,  # GLOBAL TIME LATAM (PREMIUM - 2 prods)
+    5592,  # Place Shop (PREMIUM - 75 prods)
+    7494,  # Directo a casa (VERIFICADO - 3 prods)
+    15048,  # DIGYTAL COLOMBIA (VERIFICADO - 307 prods)
+    93931,  # Tecnotodo Fv (VERIFICADO - 232 prods)
+    112108,  # Proveedor VIP (VIP - 0 prods)
+    39108,  # Proveedor VIP (VIP - 0 prods)
+    183128,  # KATZ SUPPLY 🐈‍⬛ (PREMIUM - 91 prods)
+    257033,  # Proveedor VIP (VIP - 0 prods)
+    308743,  # VIRTUAL TENDENCE (PREMIUM - 1 prods)
+    322352,  # CALZADO JHOMELISS (PREMIUM - 9 prods)
+    402211,  # Proveedor VIP (VIP - 0 prods)
+    633914,  # Royal Traders (PREMIUM - 51 prods)
+    819782,  # Proveedor VIP (VIP - 0 prods)
+    121020,  # Proveedor VIP (VIP - 0 prods)
+    20055,  # TUSHOP (VERIFICADO - 149 prods)
+    121858,  # Nikomar (VERIFICADO - 439 prods)
+    106656,  # IMPONOVEDADES (VERIFICADO - 1085 prods)
+    65298,  # Proveedor VIP (VIP - 0 prods)
+    317436,  # Proveedor VIP (VIP - 0 prods)
+    183129,  # Proveedor VIP (VIP - 0 prods)
+    221666,  # Proveedor VIP (VIP - 0 prods)
+    213601,  # Proveedor VIP (VIP - 0 prods)
+    177748,  # Proveedor VIP (VIP - 0 prods)
+    250052,  # Proveedor VIP (VIP - 0 prods)
+    394909,  # Proveedor VIP (VIP - 0 prods)
+    9928,  # CURREN LATAM (PREMIUM EXCLUSIVO - 61 prods)
+    9671,  # TUDEO 2.0 BODEGA ONLINE (PREMIUM - 10 prods)
+    27426,  # DLUJO ORO LAMINADO (PREMIUM - 154 prods)
+    205896,  # Proveedor VIP (VIP - 0 prods)
+    40107,  # C_store99 (VERIFICADO - 296 prods)
+    102652,  # BAGY SHOP (VERIFICADO - 336 prods)
+    187387,  # Proveedor VIP (VIP - 0 prods)
+    215443,  # Proveedor VIP (VIP - 0 prods)
+    93766,  # AlphaTechnology (VERIFICADO - 63 prods)
+    325737,  # Proveedor VIP (VIP - 0 prods)
+    189520,  # Proveedor VIP (VIP - 0 prods)
+    209741,  # Proveedor VIP (VIP - 0 prods)
+    232362,  # Proveedor VIP (VIP - 0 prods)
+    147524,  # Proveedor VIP (VIP - 0 prods)
+    13658,  # Proveedor VIP (VIP - 0 prods)
+    2385,  # Proveedor VIP (VIP - 0 prods)
+    23306,  # KINO COMPANY SAS (VERIFICADO - 185 prods)
+    322353,  # Proveedor VIP (VIP - 0 prods)
+    13692,  # Proveedor VIP (VIP - 0 prods)
+    40108,  # Proveedor VIP (VIP - 0 prods)
+    6607,  # Proveedor VIP (VIP - 0 prods)
+    204846,  # Proveedor VIP (VIP - 0 prods)
+    43297,  # Proveedor VIP (VIP - 0 prods)
+    65299,  # Proveedor VIP (VIP - 0 prods)
+    125259,  # Proveedor VIP (VIP - 0 prods)
+    394910,  # Proveedor VIP (VIP - 0 prods)
+    106657,  # Proveedor VIP (VIP - 0 prods)
+    232889,  # Proveedor VIP (VIP - 0 prods)
+    231869,  # Proveedor VIP (VIP - 0 prods)
+    1222,  # Proveedor VIP (VIP - 0 prods)
+    2008,  # Proveedor VIP (VIP - 0 prods)
+    365543,  # Variedades L&G (VERIFICADO - 2260 prods)
+    192984,  # ADRIANA (PREMIUM - 1670 prods)
+    833898,  # NS NATURALES (PREMIUM - 1506 prods)
+    45331,  # DEROCHA STORE SAS (PREMIUM EXCLUSIVO - 1267 prods)
+    35040,  # DTS IMPORTADORES (PREMIUM EXCLUSIVO - 1169 prods)
+    308761,  # CLICKSTORE (PREMIUM - 817 prods)
+    179249,  # ADYSFAST (PREMIUM - 814 prods)
+    10046,  # Brothers Shoes (VERIFICADO - 752 prods)
+    832655,  # Perfumissimo Colombia (PREMIUM - 734 prods)
+    118707,  # PERFUMERIA GLOW FRAGANCE (VERIFICADO - 652 prods)
+    539491,  # CORMEGA S.A.S (PREMIUM - 646 prods)
+    27764,  # SEVEN Y ELEVEN (VERIFICADO - 636 prods)
+    407399,  # Vidix (PREMIUM - 585 prods)
+    49923,  # TOONS MAYORISTA (VERIFICADO - 562 prods)
+    825649,  # Vaxaris JM (PREMIUM - 551 prods)
+    21996,  # Worldsport.co (VERIFICADO - 540 prods)
+    464853,  # Juguetería Taiwán (PREMIUM - 481 prods)
+    825412,  # GM (PREMIUM - 460 prods)
+    47,  # ADMA (PREMIUM - 443 prods)
+    70316,  # sr virtual shop (PREMIUM - 421 prods)
+    551808,  # Manifiesto de atracción perfumeria (PREMIUM - 419 prods)
+    846870,  # Compra Facil Colombia (PREMIUM - 416 prods)
+    94839,  # AROMA DE PRIMERA (VERIFICADO - 405 prods)
+    215864,  # Multinicho Store (VERIFICADO - 400 prods)
+    73779,  # A Tu Mano Bodega (PREMIUM - 396 prods)
+    520562,  # PRO CLICK (VERIFICADO - 391 prods)
+    32318,  # Diversidades mf (VERIFICADO - 391 prods)
+    58998,  # ONIX  TECH (VERIFICADO - 366 prods)
+    243946,  # Labodega de accesorios (VERIFICADO - 321 prods)
+    409447,  # IMPERIUM (PREMIUM - 314 prods)
+    10826,  # GD Colombia (PREMIUM - 312 prods)
+    96165,  # Unimarket (VERIFICADO - 311 prods)
+    6338,  # tecnologia mundial el paisa (PREMIUM - 302 prods)
+    75231,  # KIOH OFICIAL (PREMIUM - 294 prods)
+    472806,  # etherflowstore43 (PREMIUM - 290 prods)
+    358931,  # Dalclick Store (PREMIUM - 287 prods)
+    3897,  # www.ventasbogota.com (PREMIUM - 279 prods)
+    177132,  # BOGOCLOCK (VERIFICADO - 270 prods)
+    844431,  # Botania (VERIFICADO - 268 prods)
+    4454,  # BCOMPANY (VERIFICADO - 262 prods)
+    14644,  # POWERFUL (PREMIUM - 261 prods)
+    3195,  # tlovend (VERIFICADO - 254 prods)
+    178340,  # Distribuciones Román (VERIFICADO - 252 prods)
+    937033,  # Androy Sport (PREMIUM - 247 prods)
+    64606,  # TMAX TECNOLOGIA SAS (VERIFICADO - 242 prods)
+    651177,  # VitalEcoms Prov (PREMIUM - 237 prods)
+    105021,  # FABIAN PATIÑO (PREMIUM - 235 prods)
+    354795,  # Eladio (PREMIUM - 227 prods)
+    64834,  # Stockeado + Andrey Business (PREMIUM EXCLUSIVO - 227 prods)
+    100837,  # TELE VARIEDADES  JV (PREMIUM - 226 prods)
+    777541,  # Parfum store (PREMIUM - 219 prods)
+    147195,  # Wopi Bodega (PREMIUM - 216 prods)
+    73211,  # Ventas colombia (VERIFICADO - 215 prods)
+    7151,  # cubimart (VERIFICADO - 215 prods)
+    7165,  # MVMarcas.com (VERIFICADO - 211 prods)
+    432393,  # Jm tecnologia (VERIFICADO - 208 prods)
+    72363,  # 2024Store (PREMIUM - 208 prods)
+    147584,  # Mds Store (PREMIUM - 206 prods)
+    5076,  # GRAVIFLY (VERIFICADO - 191 prods)
+    52856,  # IMPOWINNER (PREMIUM EXCLUSIVO - 188 prods)
+    72962,  # Tu San Victorino (VERIFICADO - 185 prods)
+    553114,  # Heidy (PREMIUM - 184 prods)
+    43339,  # MUNDO TENDENCIAS/ SERUM 10 (PREMIUM - 182 prods)
+    66141,  # TULASTORE (PREMIUM - 181 prods)
+    637846,  # DIAMOND TECHNOLOGY  DISTRIBUTIONS S.A.S (VERIFICADO - 179 prods)
+    115342,  # LA BODEGUITA CHINA (PREMIUM EXCLUSIVO - 179 prods)
+    537179,  # Igniz Technology (PREMIUM - 178 prods)
+    34202,  # BARATON VENTAS (PREMIUM - 178 prods)
+    1027949,  # SOL NATURE (PREMIUM - 176 prods)
+    680217,  # La luz de Maria (PREMIUM - 176 prods)
+    32580,  # powermin32 (PREMIUM - 175 prods)
+    85343,  # Geeka Market (VERIFICADO - 171 prods)
+    42879,  # Exploradoras Led Tubodega (VERIFICADO - 171 prods)
+    817140,  # Davidcommerce (PREMIUM - 169 prods)
+    762866,  # PERFUM SHOP (PREMIUM - 169 prods)
+    982666,  # REYES Y LOGISTICA S.A.S (PREMIUM - 167 prods)
+    216010,  # Hornet Shop (PREMIUM - 159 prods)
+    965595,  # comercializadora el Hueco (PREMIUM - 157 prods)
+    52350,  # Bodega NEW TECNOLOGY FC (VERIFICADO - 157 prods)
+    224165,  # BODEGA VHERMELA (PREMIUM - 154 prods)
+    967954,  # Todo Esencial (PREMIUM - 153 prods)
+    893051,  # gabrielle perfumeria (PREMIUM - 151 prods)
+    53267,  # LUTHIER (VERIFICADO - 150 prods)
+    166172,  # TecnoGar (VERIFICADO - 147 prods)
+    36442,  # MACAEL (PREMIUM - 143 prods)
+    286651,  # A UN SOLO CLICK (VERIFICADO - 142 prods)
+    122530,  # Joesma Prov. (PREMIUM - 141 prods)
+    39222,  # COMERCIALIZADORA SUKI S.A.S (VERIFICADO - 141 prods)
+    39858,  # Beta Store Online (PREMIUM - 140 prods)
+    441247,  # CONTAINER IMPORTACIONES S.A.S (PREMIUM - 139 prods)
+    679300,  # Alfusa (PREMIUM - 138 prods)
+    8086,  # Dimportados (PREMIUM - 136 prods)
+    21472,  # Primo's CyberMarket (PREMIUM EXCLUSIVO - 134 prods)
+    980300,  # MAGENTA SEX SHOP (PREMIUM - 133 prods)
+    17792,  # ImperioMedellin (VERIFICADO - 132 prods)
+    16698,  # Tienda Yosep (PREMIUM - 132 prods)
+    11004,  # Gold Stone (PREMIUM EXCLUSIVO - 132 prods)
+    376574,  # Locura De Ofertas (PREMIUM - 131 prods)
+    87204,  # Distriecom (VERIFICADO - 125 prods)
+    55394,  # FYA (VERIFICADO - 125 prods)
+    31053,  # COLOMBIA DE COMPRAS TV (PREMIUM - 125 prods)
+    39095,  # PerduOutlet (PREMIUM - 124 prods)
+    250912,  # Decoplantas Online (VERIFICADO - 123 prods)
+    148403,  # Velandia (PREMIUM - 122 prods)
+    933658,  # Easytools (PREMIUM - 118 prods)
+    4173,  # Triada (PREMIUM - 116 prods)
+    78620,  # Colombia Hogar (VERIFICADO - 115 prods)
+    894235,  # infinity shop (PREMIUM - 114 prods)
+    218726,  # MOTO STEEL SAS (PREMIUM - 114 prods)
+    651557,  # SKYTEC (VERIFICADO - 113 prods)
+    771002,  # BIOBELL COMPANY SAS (PREMIUM - 112 prods)
+    22984,  # UNMERCO (VERIFICADO - 112 prods)
+    1005293,  # Agriequipos (PREMIUM - 111 prods)
+    945805,  # Variedades JP (PREMIUM - 111 prods)
+    834096,  # hamilton (PREMIUM - 111 prods)
+    322772,  # bigtoy (PREMIUM - 110 prods)
+    199820,  # null (PREMIUM - 109 prods)
+    39512,  # De Compras (VERIFICADO - 109 prods)
+    958276,  # Special Moments (PREMIUM - 108 prods)
+    859966,  # DeseOculto (PREMIUM - 107 prods)
+    932443,  # Danne variedades (PREMIUM - 106 prods)
+    156110,  # Rcimportaciones (VERIFICADO - 105 prods)
+    36082,  # Zococio tienda (VERIFICADO - 105 prods)
+    20227,  # Twimo (VERIFICADO - 105 prods)
+    8705,  # Soluciones Shop (VERIFICADO - 105 prods)
+    632711,  # PERFUMERIA ROYAL AROMA (PREMIUM - 104 prods)
+    797942,  # Neo Variedades (PREMIUM - 102 prods)
+    661724,  # Kavada Bodega Mayorista (PREMIUM - 102 prods)
+    302619,  # Alimentos Nutricionales Natural Health SAS (PREMIUM - 101 prods)
+    12510,  # Tienda AMMS (VERIFICADO - 101 prods)
+    596817,  # FLY (PREMIUM - 100 prods)
+    207761,  # GRAVIFLY (PREMIUM - 99 prods)
+    671741,  # Tiendafy (PREMIUM - 98 prods)
+    73761,  # Consigueloo (VERIFICADO - 97 prods)
+    1000939,  # Magic Confort (PREMIUM - 96 prods)
+    7297,  # AG COSMETICS - BURBAY BEAUTY (VERIFICADO - 96 prods)
+    973796,  # perfumery fhanthon (PREMIUM - 95 prods)
+    40749,  # Fenix store (PREMIUM - 95 prods)
+    45561,  # G.W.T. (VERIFICADO - 94 prods)
+    13352,  # TUCOLTIENDA (VERIFICADO - 92 prods)
+    72889,  # Tendex.co (VERIFICADO - 91 prods)
+    136436,  # Elcontainer.shop (VERIFICADO - 90 prods)
+    804229,  # TECNOVARIEDADES (PREMIUM - 89 prods)
+    775799,  # Nexion tech (VERIFICADO - 89 prods)
+    302862,  # Thunder Store ⚡ (PREMIUM - 89 prods)
+    290771,  # Cero Tabú Sexshop (PREMIUM - 89 prods)
+    918064,  # DISTRI JJ (PREMIUM - 88 prods)
+    71362,  # BEST PRICE COLOMBIA (VERIFICADO - 88 prods)
+    367018,  # SyJ Global (VERIFICADO - 87 prods)
+    350805,  # Alma Verde Naturals (VERIFICADO - 87 prods)
+    204867,  # SHOPLIC MARKET (VERIFICADO - 87 prods)
+    469966,  # KETAL BUSINESS (PREMIUM - 86 prods)
+    796386,  # D&T.STORE COLOMBIA- (PREMIUM - 85 prods)
+    625426,  # IMPERIO7 (PREMIUM - 84 prods)
+    100463,  # Importadora MAKA SAS (VERIFICADO - 84 prods)
+    69935,  # G-MASS SAS (PREMIUM - 83 prods)
+    20019,  # BALI (VERIFICADO - 83 prods)
+    3242,  # AMERCAR (PREMIUM EXCLUSIVO - 83 prods)
+    447674,  # Resveratrol Colombia (PREMIUM - 82 prods)
+    217564,  # TIENDA GOLD ONLINE (PREMIUM - 82 prods)
+    13544,  # Tienda Qcarachitos (VERIFICADO - 82 prods)
+    640540,  # apulso virtual shop (PREMIUM - 81 prods)
+    167740,  # GRAVIFLY (PREMIUM - 81 prods)
+    879303,  # viviana (PREMIUM - 80 prods)
+    668029,  # innovatech colombia (PREMIUM - 79 prods)
+    595191,  # Ecommerce Elite (PREMIUM - 78 prods)
+    437394,  # Link Game (PREMIUM - 77 prods)
+    54262,  # Stockeado Andrey Business (PREMIUM EXCLUSIVO - 77 prods)
+    602246,  # Liamu Tech (PREMIUM - 76 prods)
+    210347,  # APOLO SAS (VERIFICADO - 75 prods)
+    10349,  # Klixmant (VERIFICADO - 75 prods)
+    911649,  # M&M MARKET (PREMIUM - 74 prods)
+    525509,  # Ylo Shoes (PREMIUM - 74 prods)
+    940506,  # VARIEDADES F&F (PREMIUM - 73 prods)
+    795046,  # Miadex Global (PREMIUM - 73 prods)
+    317816,  # TeamG6 (PREMIUM - 73 prods)
+    232067,  # Dropmarket Colombia (VERIFICADO - 73 prods)
+    48926,  # ANT (PREMIUM - 73 prods)
+    778365,  # Sayii Cosmeticos (PREMIUM - 72 prods)
+    600636,  # ariastore (PREMIUM - 72 prods)
+    289273,  # Distribuidora Suple UP (VERIFICADO - 72 prods)
+    971292,  # Bogo Accesorios (PREMIUM - 71 prods)
+    480941,  # BLACK SWAN (PREMIUM - 71 prods)
+    323272,  # GDL store (VERIFICADO - 71 prods)
+    923772,  # bodega m/j (PREMIUM - 70 prods)
+    863049,  # Ardicarrselectro (PREMIUM - 70 prods)
+    556357,  # FOCUS (PREMIUM - 70 prods)
+    145270,  # null (PREMIUM - 70 prods)
+    124607,  # dream (VERIFICADO - 70 prods)
+    92800,  # Julian (PREMIUM - 70 prods)
 ]
 
 # Headers oficiales de la integración de WooCommerce / WordPress con Dropi.
