@@ -13,7 +13,7 @@ on:
 
 concurrency:
   group: dropi-master-scanner
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -59,7 +59,7 @@ jobs:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 4 --pages ${{ github.event.inputs.pages || '1730' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
+          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 8 --pages ${{ github.event.inputs.pages || '1730' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
 
       - name: Subir Base de Datos del Shard
         uses: actions/upload-artifact@v4

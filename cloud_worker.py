@@ -627,12 +627,12 @@ def run_shard(
 
     # FASE 1: Proveedores VIP asignados equitativamente a este Shard
     my_vip = [s for i, s in enumerate(VIP_SUPPLIERS) if i % total_shards == shard_id]
-    print(f" [SHARD {shard_id + 1}] Auditando {len(my_vip)} Proveedores VIP prioritarios: {my_vip}...", flush=True)
+    print(f" [SHARD {shard_id + 1}] Auditando {len(my_vip)} Proveedores VIP prioritarios (máx 2 pág/bodega)...", flush=True)
     vip_count = 0
     now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
-    for sid in my_vip:
+    for i_sid, sid in enumerate(my_vip, 1):
         p = 1
-        while p <= 5:  # Hasta 200 productos por proveedor VIP
+        while p <= 2:  # Optimizado a 2 páginas (80 productos más recientes/más vendidos) por ciclo
             objs = fetch_supplier_direct(session=session, supplier_id=sid, page=p, token=token)
             if not objs:
                 break
@@ -642,7 +642,9 @@ def run_shard(
             if len(objs) < PAGE_SIZE:
                 break
             p += 1
-    print(f" [SHARD {shard_id + 1}] VIP Auditados: {vip_count} productos guardados.\n", flush=True)
+        if i_sid % 10 == 0 or i_sid == len(my_vip):
+            print(f" [SHARD {shard_id + 1}] VIP Progreso: {i_sid}/{len(my_vip)} bodegas auditadas ({vip_count} productos)", flush=True)
+    print(f" [SHARD {shard_id + 1}] VIP Fase 1 Completada: {vip_count} productos guardados.\n", flush=True)
 
     # FASE 2: Barrido general de páginas del catálogo
     saved_count = vip_count

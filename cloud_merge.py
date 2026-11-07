@@ -67,6 +67,25 @@ def init_master_db():
     conn.commit()
     conn.close()
 
+def fetch_node2_shards():
+    url = "https://github.com/JulianDvd1/Tracker-scanner-worker2/releases/download/v1.0-worker2/worker2-shards.zip"
+    try:
+        print(" -> Intentando descargar Shards del Nodo 2 (Shards 4-7) desde " + url + "...")
+        r = requests.get(url, timeout=30)
+        if r.status_code == 200 and len(r.content) > 1000:
+            os.makedirs("downloaded_shards/node2", exist_ok=True)
+            with open("worker2-shards.zip", "wb") as f:
+                f.write(r.content)
+            with zipfile.ZipFile("worker2-shards.zip", "r") as z:
+                z.extractall("downloaded_shards/node2")
+            print(" -> Shards del Nodo 2 descargados y extraídos con éxito.")
+            if os.path.exists("worker2-shards.zip"):
+                os.remove("worker2-shards.zip")
+        else:
+            print(f" -> Nodo 2 no disponible o aún no publicado (HTTP {r.status_code}). Se continuará con los shards locales.")
+    except Exception as e:
+        print(f" -> Aviso: no se pudieron descargar shards del Nodo 2: {e}")
+
 def restore_previous_catalog():
     if os.path.exists(MASTER_DB):
         return
@@ -86,6 +105,7 @@ def restore_previous_catalog():
         print(f" -> No se pudo restaurar catálogo previo (se creará uno nuevo): {e}")
 
 def merge_all_shards():
+    fetch_node2_shards()
     restore_previous_catalog()
     init_master_db()
 
