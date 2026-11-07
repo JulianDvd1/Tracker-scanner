@@ -2,8 +2,8 @@ name: Dropi Master Scanner (Cloud Tracker)
 
 on:
   schedule:
-    # Cada 2 horas continuas en minuto 15 para evitar colas de GitHub Actions
-    - cron: '15 */2 * * *'
+    # Cada 2 horas en punto (12:00, 14:00, 16:00, 18:00, 20:00... Hora Colombia)
+    - cron: '0 1-23/2 * * *'
   workflow_dispatch:
     inputs:
       pages:
@@ -19,6 +19,18 @@ permissions:
   contents: write
 
 jobs:
+  activar_worker2:
+    name: Sincronizar y Activar Worker 2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disparar Worker 2 via API
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/JulianDvd1/Tracker-scanner-worker2/actions/workflows/dropi_worker2.yml/dispatches \
+            -d '{"ref":"main","inputs":{"pages":"${{ github.event.inputs.pages || '''1730''' }}"}}' || true
+
   scan_shards:
     name: Shard ${{ matrix.shard }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
