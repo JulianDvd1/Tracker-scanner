@@ -617,9 +617,15 @@ def run_shard(
     total_pages = end_page - start_page + 1
     masked_token = token[:6] + "..." + token[-4:] if len(token) > 10 else "***"
 
+    try:
+        public_ip = session.get("https://api.ipify.org", timeout=5).text.strip()
+    except Exception:
+        public_ip = "No detectada"
+
     print(f"\n=======================================================", flush=True)
     print(f" ESCÁNER DROPI DIRECTO - SHARD {shard_id + 1}/{total_shards}", flush=True)
     print(f" - Destino BD: {db_name}", flush=True)
+    print(f" - IP Pública Saliente: {public_ip}", flush=True)
     print(f" - Token asignado: {masked_token}", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} ({total_pages} páginas | ~{total_pages * PAGE_SIZE:,} productos)", flush=True)
     print(f" - Marcapasos: Fijo a 5.5s de enfriamiento | Pausa 429: 60s", flush=True)
