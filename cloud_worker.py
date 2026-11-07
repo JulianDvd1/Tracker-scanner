@@ -486,7 +486,7 @@ def fetch_supplier_direct(
         try:
             r = session.post(DROPI_API_URL, json=payload, headers=headers, timeout=30)
             if r.status_code == 200:
-                time.sleep(2.0)
+                time.sleep(3.5)
                 data = r.json()
                 if isinstance(data, dict) and data.get("isSuccess"):
                     return data.get("objects", [])
@@ -650,7 +650,8 @@ def run_shard(
             p += 1
         if i_sid % 10 == 0 or i_sid == len(my_vip):
             print(f" [SHARD {shard_id + 1}] VIP Progreso: {i_sid}/{len(my_vip)} bodegas auditadas ({vip_count} productos)", flush=True)
-    print(f" [SHARD {shard_id + 1}] VIP Fase 1 Completada: {vip_count} productos guardados.\n", flush=True)
+    print(f" [SHARD {shard_id + 1}] VIP Fase 1 Completada: {vip_count} productos guardados. Enfriando 6.0s para inicio limpio de Fase 2...\n", flush=True)
+    time.sleep(6.0)
 
     # FASE 2: Barrido general de páginas del catálogo
     saved_count = vip_count
