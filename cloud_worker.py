@@ -5,7 +5,7 @@ import json
 import sqlite3
 import random
 import argparse
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -397,8 +397,8 @@ def fetch_page_direct(
     session: requests.Session,
     page: int,
     token: str,
-    max_retries: int = 3
-) -> List[Dict[str, Any]]:
+    max_retries: int = 2
+) -> Tuple[List[Dict[str, Any]], bool]:
     start_data = (page - 1) * PAGE_SIZE
     payload = {
         "startData": start_data,
@@ -416,6 +416,7 @@ def fetch_page_direct(
         "User-Agent": random.choice(USER_AGENTS)
     }
 
+    was_429 = False
     for attempt in range(1, max_retries + 1):
         t0 = time.time()
         try:
@@ -424,32 +425,33 @@ def fetch_page_direct(
 
             if r.status_code == 200:
                 # Marcapasos estricto de seguridad:
-                # 5.5s de enfriamiento garantizado entre peticiones para no saturar la IP
-                time.sleep(5.5)
+                # 6.2s de enfriamiento garantizado entre peticiones para no saturar la IP/token
+                time.sleep(6.2)
 
                 try:
                     data = r.json()
                 except Exception as je:
                     print(f" [ERROR JSON Pág {page}] {je}", flush=True)
-                    return []
+                    return [], False
 
                 if isinstance(data, dict) and data.get("isSuccess"):
                     objs = data.get("objects", [])
-                    return objs
+                    return objs, False
                 else:
                     msg = data.get("message") if isinstance(data, dict) else "Formato inesperado"
                     print(f" [DROPI RESPUESTA NO EXITOSA Pág {page}] {msg}", flush=True)
-                    return []
+                    return [], False
 
             elif r.status_code == 429:
-                print(f" [429 Rate-Limit Pág {page}] Pausando 60.0s para enfriar ventana...", flush=True)
-                time.sleep(60.0)
+                was_429 = True
+                print(f" [429 Rate-Limit Pág {page}] Pausando 90.0s para resetear ventana de Dropi...", flush=True)
+                time.sleep(90.0)
                 continue
 
             elif r.status_code == 401:
                 print(f" [401 No Autorizado Pág {page}] Token inválido o rechazo de cabecera: {r.text[:200]}", flush=True)
-                time.sleep(5.0)
-                return []
+                time.sleep(3.0)
+                return [], False
 
             else:
                 print(f" [HTTP {r.status_code} Pág {page}] Intento {attempt}: {r.text[:150]}", flush=True)
@@ -460,7 +462,7 @@ def fetch_page_direct(
             print(f" [TIMEOUT/RED Pág {page}] Intento {attempt} ({elapsed:.1f}s): {e}", flush=True)
             time.sleep(2.0)
 
-    return []
+    return [], was_429
 
 def fetch_supplier_direct(
     session: requests.Session,
@@ -486,13 +488,14 @@ def fetch_supplier_direct(
         try:
             r = session.post(DROPI_API_URL, json=payload, headers=headers, timeout=30)
             if r.status_code == 200:
-                time.sleep(3.5)
+                time.sleep(3.8)
                 data = r.json()
                 if isinstance(data, dict) and data.get("isSuccess"):
                     return data.get("objects", [])
                 return []
             elif r.status_code == 429:
-                time.sleep(60.0)
+                print(f" [429 VIP Proveedor {supplier_id}] Pausando 90.0s para resetear ventana...", flush=True)
+                time.sleep(90.0)
                 continue
             else:
                 time.sleep(2.0)
@@ -628,26 +631,20 @@ def run_shard(
     print(f" - IP Pública Saliente: {public_ip}", flush=True)
     print(f" - Token asignado: {masked_token}", flush=True)
     print(f" - Rango de páginas: {start_page} a {end_page} ({total_pages} páginas | ~{total_pages * PAGE_SIZE:,} productos)", flush=True)
-    print(f" - Marcapasos: Fijo a 5.5s de enfriamiento | Pausa 429: 60s", flush=True)
+    print(f" - Marcapasos: Fijo a 6.2s de enfriamiento | Pausa 429: 90s | Circuit Breaker Activo", flush=True)
     print(f"=======================================================\n", flush=True)
 
-    # FASE 1: Proveedores VIP asignados equitativamente a este Shard
+    # FASE 1: Proveedores VIP asignados equitativamente a este Shard (Top 40 estrellas por bodega)
     my_vip = [s for i, s in enumerate(VIP_SUPPLIERS) if i % total_shards == shard_id]
-    print(f" [SHARD {shard_id + 1}] Auditando {len(my_vip)} Proveedores VIP prioritarios (máx 2 pág/bodega)...", flush=True)
+    print(f" [SHARD {shard_id + 1}] Auditando {len(my_vip)} Proveedores VIP prioritarios (1 pág/bodega estrella)...", flush=True)
     vip_count = 0
     now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
     for i_sid, sid in enumerate(my_vip, 1):
-        p = 1
-        while p <= 2:  # Optimizado a 2 páginas (80 productos más recientes/más vendidos) por ciclo
-            objs = fetch_supplier_direct(session=session, supplier_id=sid, page=p, token=token)
-            if not objs:
-                break
+        objs = fetch_supplier_direct(session=session, supplier_id=sid, page=1, token=token)
+        if objs:
             added = save_items_batch(objs, cursor, now_iso, is_vip=True)
             vip_count += added
             conn.commit()
-            if len(objs) < PAGE_SIZE:
-                break
-            p += 1
         if i_sid % 10 == 0 or i_sid == len(my_vip):
             print(f" [SHARD {shard_id + 1}] VIP Progreso: {i_sid}/{len(my_vip)} bodegas auditadas ({vip_count} productos)", flush=True)
     print(f" [SHARD {shard_id + 1}] VIP Fase 1 Completada: {vip_count} productos guardados. Enfriando 6.0s para inicio limpio de Fase 2...\n", flush=True)
@@ -657,9 +654,18 @@ def run_shard(
     saved_count = vip_count
     pages_done = 0
     start_time = time.time()
+    consecutive_429 = 0
 
     for page in range(start_page, end_page + 1):
-        objects = fetch_page_direct(session=session, page=page, token=token)
+        objects, was_429 = fetch_page_direct(session=session, page=page, token=token)
+
+        if was_429:
+            consecutive_429 += 1
+            if consecutive_429 >= 3:
+                print(f"\n [CIRCUIT BREAKER] 3 rate-limits consecutivos detectados. Finalizando Shard {shard_id + 1} de forma segura con {saved_count:,} productos guardados.\n", flush=True)
+                break
+        else:
+            consecutive_429 = 0
 
         if objects:
             now_iso = time.strftime('%Y-%m-%dT%H:%M:%S')
