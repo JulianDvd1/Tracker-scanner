@@ -119,6 +119,59 @@
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
     }
+
+    /* Animación de apertura en cascada para la Calculadora COD */
+    @keyframes modalBackdropFadeIn {
+      from { opacity: 0; backdrop-filter: blur(0px); }
+      to { opacity: 1; backdrop-filter: blur(8px); }
+    }
+    @keyframes modalCascadeSlideDown {
+      0% {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.94);
+      }
+      65% {
+        opacity: 1;
+        transform: translateY(3px) scale(1.008);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    @keyframes childCascadeItem {
+      0% {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-backdrop-animate {
+      animation: modalBackdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .modal-card-cascade {
+      animation: modalCascadeSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .roi-cascade-1 {
+      animation: childCascadeItem 0.28s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+    }
+    .roi-cascade-2 {
+      animation: childCascadeItem 0.30s cubic-bezier(0.16, 1, 0.3, 1) 0.10s both;
+    }
+    .roi-cascade-3 {
+      animation: childCascadeItem 0.32s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+    }
+    .roi-cascade-4 {
+      animation: childCascadeItem 0.34s cubic-bezier(0.16, 1, 0.3, 1) 0.20s both;
+    }
+    .roi-cascade-5 {
+      animation: childCascadeItem 0.36s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+    }
   </style>
 </head>
 
@@ -702,14 +755,15 @@
   </div>
 
   <!-- ================= MODAL CALCULADORA INTELIGENTE COD ================= -->
-  <div id="roi-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl border border-slate-200 dark:border-slate-800">
-      <button onclick="closeRoiModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition">
+  <div id="roi-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closeRoiModal()">
+    <div id="roi-modal-card" class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl border border-slate-200 dark:border-slate-800">
+      <button onclick="closeRoiModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition active:scale-90 cursor-pointer" title="Cerrar (Esc)">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800 text-base">
+      <!-- Bloque 1: Cabecera con Icono -->
+      <div id="roi-c-1" class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800 text-base shadow-xs">
           <i class="fa-solid fa-calculator"></i>
         </div>
         <div>
@@ -718,14 +772,14 @@
         </div>
       </div>
 
-      <!-- Tarjeta Destacada: Precio de Venta Sugerido Óptimo -->
-      <div class="bg-gradient-to-br from-emerald-500/10 via-indigo-500/5 to-transparent border border-emerald-500/30 p-4 rounded-2xl mb-4">
+      <!-- Bloque 2: Tarjeta Destacada: Precio Sugerido Óptimo -->
+      <div id="roi-c-2" class="bg-gradient-to-br from-emerald-500/10 via-indigo-500/5 to-transparent border border-emerald-500/30 p-4 rounded-2xl mb-4 shadow-sm">
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">Precio de Venta Sugerido al Público:</span>
           <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono">Redondeo .900 COP</span>
         </div>
         <div class="flex items-baseline justify-between">
-          <span class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono" id="calc-opt-price">$89.900</span>
+          <span class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight" id="calc-opt-price">$89.900</span>
           <div class="text-right">
             <span class="text-[11px] text-slate-400 block font-sans">ROAS Equilibrio:</span>
             <span class="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono" id="calc-breakeven-roas">Min 2.3x</span>
@@ -738,8 +792,8 @@
       </div>
 
       <div class="space-y-3.5">
-        <!-- Control Deslizante de Ganancia Neta Deseada -->
-        <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-inherit">
+        <!-- Bloque 3: Control Deslizante de Ganancia Neta Deseada -->
+        <div id="roi-c-3" class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-inherit shadow-xs">
           <div class="flex justify-between items-center mb-1.5">
             <label class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
               <i class="fa-solid fa-sack-dollar text-emerald-500"></i> Meta de Utilidad Neta en Bolsillo:
@@ -754,30 +808,33 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Costo Proveedor ($ COP)</label>
-            <input type="number" id="calc-cost" value="32000" step="1000" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+        <!-- Bloque 4: Entradas de Costos y CPA -->
+        <div id="roi-c-4" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Costo Proveedor ($ COP)</label>
+              <input type="number" id="calc-cost" value="32000" step="1000" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Flete Transportadora ($)</label>
+              <input type="number" id="calc-shipping" value="20000" step="500" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
           </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">Flete Transportadora ($)</label>
-            <input type="number" id="calc-shipping" value="20000" step="500" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">CPA Pauta Meta/TikTok ($)</label>
+              <input type="number" id="calc-cpa" value="18000" step="500" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">% Devolución Estimada</label>
+              <input type="number" id="calc-returns" value="12" min="0" max="40" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">CPA Pauta Meta/TikTok ($)</label>
-            <input type="number" id="calc-cpa" value="18000" step="500" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
-          </div>
-          <div>
-            <label class="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">% Devolución Estimada</label>
-            <input type="number" id="calc-returns" value="12" min="0" max="40" class="w-full app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-mono">
-          </div>
-        </div>
-
-        <!-- Desglose Completo de Costos Operativos -->
-        <div class="app-card p-3 rounded-xl border space-y-1.5 font-mono text-[11px]">
+        <!-- Bloque 5: Desglose Completo de Costos Operativos -->
+        <div id="roi-c-5" class="app-card p-3 rounded-xl border space-y-1.5 font-mono text-[11px] shadow-xs">
           <div class="flex justify-between text-slate-500">
             <span>Flete Efectivo (Ida + Devoluciones):</span>
             <span class="font-bold text-slate-800 dark:text-slate-200" id="calc-effective-ship">--</span>
@@ -1886,9 +1943,40 @@
       if (currentChart) currentChart.destroy();
     }
 
-    // Calculadora Inteligente de Precio & Rentabilidad COD
+    // Calculadora Inteligente de Precio & Rentabilidad COD (Apertura en Cascada Fluida)
     function openRoiModal() {
-      document.getElementById('roi-modal').classList.remove('hidden');
+      const modal = document.getElementById('roi-modal');
+      const card = document.getElementById('roi-modal-card');
+      
+      modal.classList.remove('hidden');
+      modal.style.opacity = '';
+      if (card) {
+        card.style.opacity = '';
+        card.style.transform = '';
+        card.style.transition = '';
+      }
+
+      // Reiniciar y disparar animación fluida en el fondo y la tarjeta
+      modal.classList.remove('modal-backdrop-animate');
+      void modal.offsetWidth;
+      modal.classList.add('modal-backdrop-animate');
+
+      if (card) {
+        card.classList.remove('modal-card-cascade');
+        void card.offsetWidth;
+        card.classList.add('modal-card-cascade');
+      }
+
+      // Cascada escalonada en los bloques internos
+      ['roi-c-1', 'roi-c-2', 'roi-c-3', 'roi-c-4', 'roi-c-5'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.remove(`roi-cascade-${idx + 1}`);
+          void el.offsetWidth;
+          el.classList.add(`roi-cascade-${idx + 1}`);
+        }
+      });
+
       updateRoiCalc();
     }
     
@@ -1904,8 +1992,39 @@
     }
 
     function closeRoiModal() {
-      document.getElementById('roi-modal').classList.add('hidden');
+      const modal = document.getElementById('roi-modal');
+      const card = document.getElementById('roi-modal-card');
+      if (card) {
+        card.style.transition = 'all 0.18s cubic-bezier(0.4, 0, 1, 1)';
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(-14px) scale(0.96)';
+      }
+      modal.style.transition = 'opacity 0.18s ease';
+      modal.style.opacity = '0';
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.opacity = '';
+        if (card) {
+          card.style.opacity = '';
+          card.style.transform = '';
+          card.style.transition = '';
+        }
+      }, 180);
     }
+
+    // Cerrar modal al presionar la tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const roiModal = document.getElementById('roi-modal');
+        if (roiModal && !roiModal.classList.contains('hidden')) {
+          closeRoiModal();
+        }
+        const prodModal = document.getElementById('product-modal');
+        if (prodModal && !prodModal.classList.contains('hidden')) {
+          closeProductModal();
+        }
+      }
+    });
 
     function updateRoiCalc() {
       const cost = parseFloat(document.getElementById('calc-cost').value) || 0;
