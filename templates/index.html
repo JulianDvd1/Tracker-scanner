@@ -440,6 +440,9 @@
             <button onclick="setCategory('all')" class="cat-pill active px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 text-white shrink-0 transition">
               Todas
             </button>
+            <button onclick="filterBreakouts()" id="cat-pill-breakout" class="cat-pill px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-500 text-white shrink-0 transition flex items-center gap-1.5 shadow-sm hover:opacity-95">
+              <i class="fa-solid fa-bolt text-amber-300"></i> 🚀 Despegando Hoy
+            </button>
             <button onclick="setCategory('Hogar')" class="cat-pill px-4 py-2 rounded-xl text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shrink-0 transition">
               🏠 Hogar
             </button>
@@ -493,10 +496,23 @@
 
               <select id="badge-select" class="app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-medium">
                 <option value="all">⚡ Todos los Estados</option>
-                <option value="ESCALANDO">🚀 Escalando Ahora</option>
-                <option value="CONSOLIDADO">🔥 Consolidados (+300)</option>
+                <option value="DESPEGANDO">🚀 Despegando Hoy (Breakouts)</option>
+                <option value="ESCALANDO">🔥 Escalando Fuerte</option>
+                <option value="CONSOLIDADO">📦 Consolidados (+300)</option>
                 <option value="JOYA OCULTA">💎 Joyas Ocultas (+$50k)</option>
               </select>
+
+              <select id="ticket-select" class="app-input border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-medium">
+                <option value="all">🎟️ Cualquier Ticket</option>
+                <option value="low">🟢 Ticket Masivo (&lt; $65k PVP)</option>
+                <option value="medium">🟡 Ticket Medio ($65k - $110k)</option>
+                <option value="high">🟣 High Ticket (&gt; $110k PVP)</option>
+              </select>
+
+              <button onclick="exportWinnersCsv()" class="flex items-center gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl transition shadow-xs cursor-pointer active:scale-95" title="Descargar reporte en Excel / CSV">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Exportar Top</span>
+              </button>
             </div>
 
             <div class="flex items-center gap-3 ml-auto flex-wrap">
@@ -505,6 +521,7 @@
                 <span class="text-xs text-slate-400 font-medium">Ordenar:</span>
                 <select id="sort-select" class="app-input border text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
                   <option value="sales">🔥 Más Vendidos Hoy (24h)</option>
+                  <option value="breakout">🚀 Mayor Despegue Hoy</option>
                   <option value="sales_week">🏆 Más Vendidos Semana (7d)</option>
                   <option value="margin">💰 Mayor Margen Neto</option>
                   <option value="newest">⚡ Más Recientes</option>
@@ -859,6 +876,8 @@
     let currentMargin = 0;
     let currentSort = 'sales';
     let currentBadge = 'all';
+    let currentTicket = 'all';
+    window._currentProductAngles = null;
     let searchQuery = '';
     let currentChart = null;
     let cachedProducts = [];
@@ -1004,7 +1023,9 @@
 
       // Badge de Escala Dinámico High-End
       let scaleBadge = '';
-      if (p.today_units > 0) {
+      if (p.badge_type === 'DESPEGANDO') {
+        scaleBadge = `<span class="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-500 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-fuchsia-500/30 tracking-wide animate-pulse"><i class="fa-solid fa-bolt text-[9px] text-amber-300"></i> DESPEGANDO</span>`;
+      } else if (p.today_units > 0) {
         scaleBadge = `<span class="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-orange-500/30 tracking-wide"><i class="fa-solid fa-fire text-[9px]"></i> ${Number(p.today_units).toLocaleString('es-CO')} HOY</span>`;
       } else if (p.week_units > 0) {
         scaleBadge = `<span class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-indigo-600/30 tracking-wide"><i class="fa-solid fa-calendar-week text-amber-300 text-[9px]"></i> ${Number(p.week_units).toLocaleString('es-CO')} SEMANA</span>`;
@@ -1018,15 +1039,17 @@
         tierBadge = `<span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1"><i class="fa-solid fa-crown text-[8px]"></i> ${rawTier.replace('PREMIUM ', '')}</span>`;
       }
 
-      // Badge de Stock Disponible en Bodega
+      // Semáforo Inteligente de Stock de Bodega para Escalar
       const stockVal = Number(p.stock || 0);
       let stockBadge = '';
-      if (stockVal >= 25) {
-        stockBadge = `<span class="bg-slate-900/95 text-emerald-400 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 font-mono" title="Stock disponible en bodega"><i class="fa-solid fa-boxes-stacked text-[9px] text-emerald-400"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
+      if (stockVal >= 300) {
+        stockBadge = `<span class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 font-mono shadow-xs" title="Stock abundante en bodega: Seguro para escalar presupuesto en pauta"><i class="fa-solid fa-circle-check text-[9px] text-emerald-500"></i> ${stockVal.toLocaleString('es-CO')} stock • Apto Escalar</span>`;
+      } else if (stockVal >= 50) {
+        stockBadge = `<span class="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 font-mono" title="Stock medio en bodega: Recomendado para testeo"><i class="fa-solid fa-boxes-stacked text-[9px] text-amber-500"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
       } else if (stockVal > 0) {
-        stockBadge = `<span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 border border-amber-400/40" title="Stock bajo en bodega"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i> ${stockVal.toLocaleString('es-CO')} stock</span>`;
+        stockBadge = `<span class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1 font-mono" title="Stock bajo en bodega: Testear con precaución"><i class="fa-solid fa-triangle-exclamation text-[9px] text-rose-500"></i> ${stockVal.toLocaleString('es-CO')} stock (Crítico)</span>`;
       } else {
-        stockBadge = `<span class="bg-slate-900/95 text-teal-400 border border-teal-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 font-mono" title="Stock verificado en bodega Dropi (+5 unidades)"><i class="fa-solid fa-boxes-stacked text-[9px] text-teal-400"></i> +5 stock</span>`;
+        stockBadge = `<span class="bg-slate-900/90 text-teal-400 border border-teal-500/30 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 font-mono" title="Stock verificado en bodega Dropi (+5 unds)"><i class="fa-solid fa-boxes-stacked text-[9px] text-teal-400"></i> +5 stock</span>`;
       }
 
       return `
@@ -1231,7 +1254,7 @@
       }
 
       try {
-        const url = `/api/products?category=${encodeURIComponent(currentCategory)}&tier=${encodeURIComponent(currentTier)}&min_margin=${currentMargin}&sort_by=${currentSort}&search=${encodeURIComponent(searchQuery)}&limit=${pageSize}&offset=${currentOffset}`;
+        const url = `/api/products?category=${encodeURIComponent(currentCategory)}&tier=${encodeURIComponent(currentTier)}&min_margin=${currentMargin}&sort_by=${currentSort}&ticket=${encodeURIComponent(currentTicket)}&badge=${encodeURIComponent(currentBadge)}&search=${encodeURIComponent(searchQuery)}&limit=${pageSize}&offset=${currentOffset}`;
         const res = await fetch(url);
         const data = await res.json();
         const newProducts = data.products || [];
@@ -1642,41 +1665,172 @@
       const grid = document.getElementById('compare-grid');
       modal.classList.remove('hidden');
 
-      grid.innerHTML = compareList.map(p => `
-        <div class="app-card rounded-2xl p-4 border flex flex-col justify-between">
-          <div>
-            <div class="w-full h-44 bg-slate-50 dark:bg-slate-900 rounded-xl p-3 flex items-center justify-center mb-3">
-              <img src="${p.image_url}" class="w-full h-full object-contain">
-            </div>
-            <span class="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">${p.category || 'General'}</span>
-            <h4 class="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 mt-1 mb-3">${p.name}</h4>
+      grid.innerHTML = compareList.map(p => {
+        const cleanKeyword = cleanSpyKeywords(p.name);
+        const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(cleanKeyword)}&search_type=keyword_unordered&media_type=all`;
+        const stockVal = Number(p.stock || 0);
+        let stockBadge = stockVal >= 300 
+          ? '<span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 px-2 py-0.5 rounded flex items-center gap-1 border border-emerald-500/20"><i class="fa-solid fa-circle-check text-[9px]"></i> +300 Apto Escalar</span>'
+          : (stockVal >= 50 
+            ? `<span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/70 px-2 py-0.5 rounded flex items-center gap-1 border border-amber-500/20"><i class="fa-solid fa-boxes-stacked text-[9px]"></i> ${stockVal} Estable</span>`
+            : `<span class="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/70 px-2 py-0.5 rounded flex items-center gap-1 border border-rose-500/20"><i class="fa-solid fa-triangle-exclamation text-[9px]"></i> ${stockVal} Crítico</span>`);
 
-            <div class="space-y-2 text-xs font-mono">
-              <div class="flex justify-between pb-1 border-b border-inherit">
-                <span class="text-slate-400 font-sans">Costo Dropi:</span>
-                <span class="font-bold">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+        return `
+          <div class="app-card rounded-2xl p-4 border flex flex-col justify-between relative shadow-sm hover:border-indigo-500/40 transition">
+            <button onclick="toggleCompare(${p.id}); openCompareModal();" class="absolute top-3 right-3 text-slate-400 hover:text-rose-500 text-xs w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition" title="Quitar de la comparativa">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div>
+              <div class="w-full h-40 bg-slate-50 dark:bg-slate-900 rounded-xl p-2.5 flex items-center justify-center mb-3">
+                <img src="${p.image_url}" class="w-full h-full object-contain">
               </div>
-              <div class="flex justify-between pb-1 border-b border-inherit">
-                <span class="text-slate-400 font-sans">Margen Neto:</span>
-                <span class="font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
+              
+              <div class="flex items-center justify-between gap-1 mb-1.5">
+                <span class="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">${p.category || 'General'}</span>
+                ${stockBadge}
               </div>
-              <div class="flex justify-between pb-1 border-b border-inherit">
-                <span class="text-slate-400 font-sans">Ventas Totales:</span>
-                <span class="font-bold text-emerald-600 dark:text-emerald-400">${Number(p.units_sold).toLocaleString('es-CO')} unds</span>
+
+              <h4 class="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 mb-3 leading-snug cursor-pointer hover:text-indigo-600" onclick="closeCompareModal(); openProductModal(${p.id})">${p.name}</h4>
+
+              <div class="space-y-2 text-xs font-mono bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-inherit mb-3">
+                <div class="flex justify-between pb-1 border-b border-inherit">
+                  <span class="text-slate-400 font-sans">Costo Dropi:</span>
+                  <span class="font-bold text-slate-800 dark:text-slate-200">$${Number(p.sale_price).toLocaleString('es-CO')}</span>
+                </div>
+                <div class="flex justify-between pb-1 border-b border-inherit">
+                  <span class="text-slate-400 font-sans">PVP Sugerido:</span>
+                  <span class="font-extrabold text-emerald-600 dark:text-emerald-400">$${Number(p.recommended_price || (Number(p.sale_price) + 68000)).toLocaleString('es-CO')}</span>
+                </div>
+                <div class="flex justify-between pb-1 border-b border-inherit">
+                  <span class="text-slate-400 font-sans">Margen Libre:</span>
+                  <span class="font-extrabold text-indigo-600 dark:text-indigo-400">+$${Number(p.net_profit_est || p.margin || 28000).toLocaleString('es-CO')}</span>
+                </div>
+                <div class="flex justify-between pb-1 border-b border-inherit">
+                  <span class="text-slate-400 font-sans">Vendido Hoy:</span>
+                  <span class="font-black text-amber-500">${Number(p.today_units || 0).toLocaleString('es-CO')} unds</span>
+                </div>
+                <div class="flex justify-between pb-1 border-b border-inherit">
+                  <span class="text-slate-400 font-sans">Total Semana:</span>
+                  <span class="font-bold text-slate-800 dark:text-slate-200">${Number(p.week_units || p.units_sold || 0).toLocaleString('es-CO')} unds</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-400 font-sans">Max CPA Ads:</span>
+                  <span class="font-bold text-indigo-500">$${Number(p.target_cpa || 18000).toLocaleString('es-CO')}</span>
+                </div>
               </div>
-              <div class="flex justify-between">
-                <span class="text-slate-400 font-sans">Proveedor:</span>
-                <span class="truncate max-w-[120px] font-sans text-slate-700 dark:text-slate-300">${p.supplier_name}</span>
-              </div>
+            </div>
+
+            <div class="space-y-2 pt-2 border-t border-inherit">
+              <button onclick="closeCompareModal(); openRoiModalWithProduct(${p.sale_price}, '${p.name.replace(/'/g, "\\'")}')" class="w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                <i class="fa-solid fa-calculator"></i> Simular Calculadora COD
+              </button>
+              <a href="${metaUrl}" target="_blank" class="w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+                <i class="fa-brands fa-meta"></i> Ver Anuncios en Meta
+              </a>
             </div>
           </div>
-
-          <a href="https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(p.name)}&search_type=keyword_unordered&media_type=all" target="_blank" class="mt-4 w-full text-center bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 rounded-xl transition">
-            <i class="fa-brands fa-meta mr-1"></i> Ver Anuncios
-          </a>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
+
+    // Exportador de Reporte Top Ganadores con Branding
+    function exportWinnersCsv() {
+      if (!cachedProducts || cachedProducts.length === 0) {
+        alert('No hay productos cargados en pantalla para exportar.');
+        return;
+      }
+
+      const headers = [
+        "ID Dropi",
+        "Nombre Producto",
+        "Categoria",
+        "Proveedor",
+        "Tier Proveedor",
+        "Costo Dropi (COP)",
+        "PVP Sugerido (COP)",
+        "Margen Neto Real (COP)",
+        "Ventas Hoy 24h",
+        "Ventas Semana 7d",
+        "Stock en Bodega",
+        "Semaforo Escala",
+        "Enlace Meta Ads",
+        "Enlace Google Lens"
+      ];
+
+      const rows = cachedProducts.map(p => {
+        const cleanKey = cleanSpyKeywords(p.name);
+        const metaUrl = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=CO&q=${encodeURIComponent(cleanKey)}&search_type=keyword_unordered&media_type=all`;
+        const lensUrl = `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(p.image_url)}`;
+        const stockStatus = p.stock >= 300 ? "Apto para Escalar" : (p.stock >= 50 ? "Stock Estable" : "Stock Critico");
+
+        return [
+          p.id,
+          `"${p.name.replace(/"/g, '""')}"`,
+          `"${p.category || 'General'}"`,
+          `"${p.supplier_name || 'Proveedor'}"`,
+          `"${p.supplier_tier || 'VERIFICADO'}"`,
+          p.sale_price,
+          p.recommended_price || (p.sale_price + 68000),
+          p.net_profit_est || 28000,
+          p.today_units || 0,
+          p.week_units || p.units_sold || 0,
+          p.stock || 0,
+          `"${stockStatus}"`,
+          `"${metaUrl}"`,
+          `"${lensUrl}"`
+        ].join(',');
+      });
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const csvContent = "\uFEFF" + [
+        `# DROPI SPY COLOMBIA - REPORTE DE INTELIGENCIA DE PRODUCTOS GANADORES (${todayStr})`,
+        `# Monitoreo Oficial Dropi Colombia - www.dropispy.co`,
+        headers.join(','),
+        ...rows
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DropiSpy_Ganadores_${todayStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function copyToClipboard(text, btnElem) {
+      navigator.clipboard.writeText(text);
+      if (btnElem) {
+        const orig = btnElem.innerHTML;
+        btnElem.innerHTML = '<i class="fa-solid fa-check text-emerald-500"></i>';
+        setTimeout(() => { btnElem.innerHTML = orig; }, 2000);
+      }
+    }
+
+    function copyMasterPrompt() {
+      if (window._currentProductAngles && window._currentProductAngles.chatgpt_master_prompt) {
+        navigator.clipboard.writeText(window._currentProductAngles.chatgpt_master_prompt);
+        alert('📋 ¡Mega-Prompt para ChatGPT copiado con éxito! Pégalo en ChatGPT para obtener más creativos.');
+      }
+    }
+
+    function copyUgcScript() {
+      if (window._currentProductAngles && window._currentProductAngles.ugc_script) {
+        const text = window._currentProductAngles.ugc_script.pacing.map(p => `[${p.time}] ${p.stage}:\n${p.direction}`).join('\n\n');
+        navigator.clipboard.writeText(text);
+        alert('🎬 ¡Guión UGC de 15 segundos copiado al portapapeles!');
+      }
+    }
+
+    function copyMetaAdCopy() {
+      if (window._currentProductAngles && window._currentProductAngles.meta_ad_copy) {
+        navigator.clipboard.writeText(window._currentProductAngles.meta_ad_copy.body);
+        alert('✍️ ¡Copy para Meta Ads copiado al portapapeles!');
+      }
+    }
+
 
     function closeCompareModal() {
       document.getElementById('compare-modal').classList.add('hidden');
@@ -1803,6 +1957,120 @@
               </div>
             </div>
           </div>
+
+          <!-- SECCIÓN COPYWRITER & ÁNGULOS DE VENTA CON IA DIRECT-RESPONSE -->
+          ${data.angles ? (() => {
+            const a = data.angles;
+            window._currentProductAngles = a;
+            const hooksHtml = a.hooks.map((h, i) => `
+              <div class="app-card bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-inherit relative group flex flex-col justify-between shadow-xs">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                      Gancho #${i + 1} • ${h.type}
+                    </span>
+                    <button onclick="copyToClipboard('${h.hook.replace(/'/g, "\\'")}', this)" class="text-slate-400 hover:text-indigo-600 text-xs transition cursor-pointer" title="Copiar gancho">
+                      <i class="fa-regular fa-copy"></i>
+                    </button>
+                  </div>
+                  <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 italic leading-snug">"${h.hook}"</p>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-2 block">${h.desc}</span>
+              </div>
+            `).join('');
+
+            const pacingHtml = a.ugc_script.pacing.map(p => `
+              <div class="flex gap-2.5 text-xs pb-2 border-b border-inherit last:border-0 last:pb-0">
+                <span class="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0 w-20">${p.time}</span>
+                <div>
+                  <strong class="text-slate-900 dark:text-white block text-[11px]">${p.stage}</strong>
+                  <span class="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">${p.direction}</span>
+                </div>
+              </div>
+            `).join('');
+
+            return `
+              <div class="app-card bg-slate-50 dark:bg-slate-900/60 p-4 sm:p-5 rounded-2xl border mb-5 space-y-3.5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-inherit pb-3">
+                  <div>
+                    <div class="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-black uppercase tracking-wider">
+                      <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Ángulos de Venta & Copys de Pauta (IA)
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Estrategia direct-response para TikTok, Reels y Meta Ads en Colombia</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button onclick="copyMasterPrompt()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" title="Copiar Prompt Maestro para ChatGPT">
+                      <i class="fa-solid fa-robot"></i>
+                      <span>Copiar Mega-Prompt ChatGPT</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 3 Hooks Virales -->
+                <div>
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-2">3 Ganchos (Hooks) para los primeros 3 segundos:</span>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    ${hooksHtml}
+                  </div>
+                </div>
+
+                <!-- Guión UGC y Copy Meta Ads -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
+                  <!-- Guión UGC 15s -->
+                  <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit flex flex-col justify-between shadow-xs">
+                    <div>
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <i class="fa-solid fa-video text-rose-500"></i> Guión UGC de 15 Segundos
+                        </span>
+                        <button onclick="copyUgcScript()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer">
+                          <i class="fa-regular fa-copy"></i> Copiar Guión
+                        </button>
+                      </div>
+                      <div class="space-y-2 mt-2">
+                        ${pacingHtml}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Copy Meta Ads -->
+                  <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit flex flex-col justify-between shadow-xs">
+                    <div>
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <i class="fa-brands fa-meta text-blue-500"></i> Copy Persuasivo Meta Ads (COD)
+                        </span>
+                        <button onclick="copyMetaAdCopy()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer">
+                          <i class="fa-regular fa-copy"></i> Copiar Copy
+                        </button>
+                      </div>
+                      <pre class="font-sans text-[11px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar p-2.5 bg-slate-50 dark:bg-slate-950/50 rounded-lg border border-inherit select-all">${a.meta_ad_copy.body}</pre>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Segmentación y Recomendación de Pauta -->
+                <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900/80 rounded-xl border border-inherit text-xs shadow-xs">
+                  <div class="flex flex-wrap items-center gap-4">
+                    <div>
+                      <span class="text-[9px] uppercase font-bold text-slate-400 block">Edad Sugerida:</span>
+                      <span class="font-bold text-slate-800 dark:text-slate-200">${a.target_audience.age}</span>
+                    </div>
+                    <div>
+                      <span class="text-[9px] uppercase font-bold text-slate-400 block">Género:</span>
+                      <span class="font-bold text-slate-800 dark:text-slate-200">${a.target_audience.gender}</span>
+                    </div>
+                    <div>
+                      <span class="text-[9px] uppercase font-bold text-slate-400 block">Intereses Sugeridos (Meta Ads):</span>
+                      <div class="flex items-center gap-1 flex-wrap mt-0.5">
+                        ${a.target_audience.interests.map(it => `<span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-600 dark:text-slate-300">${it}</span>`).join('')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          })() : ''}
 
           <!-- Gráfica de Ventas Por DÍA INDEPENDIENTE (Barras) -->
           <div class="app-card bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border mb-5">
@@ -2112,6 +2380,21 @@
       currentBadge = e.target.value;
       loadProducts();
     });
+
+    const ticketSelect = document.getElementById('ticket-select');
+    if (ticketSelect) {
+      ticketSelect.addEventListener('change', (e) => {
+        currentTicket = e.target.value;
+        loadProducts();
+      });
+    }
+
+    function filterBreakouts() {
+      currentBadge = 'DESPEGANDO';
+      const bSel = document.getElementById('badge-select');
+      if (bSel) bSel.value = 'DESPEGANDO';
+      loadProducts();
+    }
 
     document.getElementById('sort-select').addEventListener('change', (e) => {
       currentSort = e.target.value;

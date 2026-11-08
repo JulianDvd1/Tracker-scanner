@@ -1,3 +1,4 @@
+import json
 import os
 import sqlite3
 import datetime
@@ -573,6 +574,192 @@ def get_top_suppliers(limit: int = 40):
     conn.close()
     return {"suppliers": rows}
 
+
+def generate_creative_angles(product: dict) -> dict:
+    name = product.get('name', 'Producto Ganador')
+    category = product.get('category', 'General')
+    cost = float(product.get('sale_price') or 20000)
+    margin = float(product.get('margin') or 28000)
+    sugg_price = float(product.get('suggested_price') or (cost + margin + 40000))
+    sugg_price_fmt = f"${int(sugg_price):,} COP".replace(',', '.')
+    margin_fmt = f"${int(margin):,} COP".replace(',', '.')
+
+    n_lower = name.lower()
+    c_lower = category.lower()
+
+    if any(k in n_lower for k in ['drenaje', 'linfatic', 'gotas', 'peso', 'grasa', 'adelgaz', 'quemador', 'detox']) or 'salud' in c_lower:
+        niche = "Salud & Control de Peso / Drenaje"
+        pain = "retención de líquidos, abdomen hinchado y sensación de pesadez al final del día"
+        benefit = "desinflamar el cuerpo, expulsar toxinas acumuladas y sentir la ropa más holgada desde los primeros días"
+        hook_1 = "Si te levantas plano pero terminas el día con el abdomen como un balón, tu cuerpo te está pidiendo un drenaje urgente..."
+        hook_2 = "El 90% de las personas en Colombia cree que subió de peso, cuando en realidad es pura retención de líquidos acumulada..."
+        hook_3 = "No compres estas gotas a menos que estés listo para notar tus pantalones más sueltos esta misma semana..."
+        ugc_0_3 = "Muestra abdomen o rostro en espejo con cara de incomodidad: 'Pensé que era grasa, pero mi médico me dijo que era pura retención...'"
+        ugc_3_7 = "Sostiene el producto: 'Empecé a tomar esto todas las mañanas antes del desayuno...'"
+        ugc_7_12 = "Muestra cómo se disuelve o se toma: 'Es 100% natural, cero efecto rebote y desinflama desde el día 3.'"
+        ugc_12_15 = f"Llama a la acción: 'Lo mejor es que lo pides hoy y lo pagas contra entrega en tu casa por {sugg_price_fmt}. Toca abajo.'"
+        interests = ["Bienestar y vida saludable", "Desintoxicación (salud)", "Cuidado personal", "Vida sana"]
+        age = "25 - 54 años"
+        gender = "Mujeres (75%) y Hombres (25%)"
+
+    elif any(k in n_lower for k in ['ahorrador', 'energia', 'luz', 'electricidad', 'factura', 'recibo']):
+        niche = "Ahorro Energético & Hogar"
+        pain = "facturas de luz carísimas que suben todos los meses en Colombia"
+        benefit = "estabilizar el voltaje y optimizar el consumo eléctrico para bajar el valor del recibo hasta un 30%"
+        hook_1 = "La factura de la luz llegó carísima este mes... hasta que conecté este pequeño dispositivo en la pared..."
+        hook_2 = "Las empresas de energía no quieren que sepas de este aparato para estabilizar el consumo de tu casa..."
+        hook_3 = "Si pagas más de 120 mil de luz en Colombia, esto te va a ahorrar una fortuna a fin de mes..."
+        ugc_0_3 = "Muestra recibo de luz con cara de asombro: '¿También te llegó el recibo de la luz por las nubes este mes?'"
+        ugc_3_7 = "Enchufa el aparato a la toma: 'Solo tienes que conectarlo a la toma más cercana al contador o nevera...'"
+        ugc_7_12 = "Explica con medidor o gráfico: 'Optimiza el flujo de corriente y protege tus electrodomésticos de picos de voltaje.'"
+        ugc_12_15 = f"Cierre: 'Pídelo contra entrega y págalo en efectivo cuando te llegue a tu casa por {sugg_price_fmt}.'"
+        interests = ["Mejoras para el hogar", "Ahorro de energía", "Electrodomésticos", "Finanzas personales"]
+        age = "28 - 60 años"
+        gender = "Hombres y Mujeres"
+
+    elif any(k in n_lower for k in ['herramienta', 'taladro', 'destornillador', 'reparar', 'auto', 'carro', 'moto', 'mecanic']) or 'herramientas' in c_lower:
+        niche = "Herramientas & Reparación Práctica"
+        pain = "gastar tiempo y pagarle caro a un técnico por arreglos simples que uno mismo puede hacer"
+        benefit = "reparar, armar y ajustar cualquier cosa en minutos con una herramienta portátil y precisa"
+        hook_1 = "No vuelvas a pagarle 80 mil a un técnico por algo que puedes arreglar tú mismo en 2 minutos..."
+        hook_2 = "La herramienta que todo hombre en Colombia debería tener en su carro o gaveta para emergencias..."
+        hook_3 = "Dejé de renegar con tornillos rodados y muebles flojos gracias a esto..."
+        ugc_0_3 = "Muestra algo roto o un tornillo rebelde: 'Iba a llamar a un técnico para esto, pero decidí probar esta herramienta...'"
+        ugc_3_7 = "Saca la herramienta de su estuche: 'Es compacta, con puntas de alta resistencia magnéticas...'"
+        ugc_7_12 = "Demostración rápida ajustando o perforando en segundos: 'Mira con qué facilidad lo dejó perfecto.'"
+        ugc_12_15 = f"Cierre: 'Envío gratis a toda Colombia con pago contra entrega por {sugg_price_fmt}. Haz tu pedido abajo.'"
+        interests = ["Bricolaje (hazlo tú mismo)", "Herramientas manuales", "Vehículos", "Carpintería"]
+        age = "25 - 55 años"
+        gender = "Hombres (80%) y Mujeres (20%)"
+
+    elif any(k in n_lower for k in ['crema', 'suero', 'serum', 'acne', 'manchas', 'arrugas', 'facial', 'antiedad', 'piel']) or 'belleza' in c_lower:
+        niche = "Belleza & Cuidado Facial"
+        pain = "manchas en la piel, imperfecciones y tratamientos estéticos carísimos que no dan resultados"
+        benefit = "unificar el tono de la piel, atenuar líneas de expresión y recuperar la luminosidad natural"
+        hook_1 = "Antes de gastarte un platal en sesiones de láser o spas, mira el cambio de mi piel en 14 días..."
+        hook_2 = "El secreto que las clínicas estéticas no quieren que sepas para atenuar manchas en casa..."
+        hook_3 = "Día 1 vs. Día 15 usando esto todas las noches en mi rutina facial..."
+        ugc_0_3 = "Primer plano a la piel mostrando zona a mejorar: 'Tenía estas manchas desde hace meses y nada me las quitaba...'"
+        ugc_3_7 = "Aplica unas gotas o crema: 'Empecé a usar esta fórmula recomendada por cosmetólogos...'"
+        ugc_7_12 = "Muestra piel suave y radiante: 'Cero grasoso, se absorbe al instante y la piel queda como de filtro.'"
+        ugc_12_15 = f"Cierre: 'Pide hoy con pago contra entrega en Servientrega o Envía por solo {sugg_price_fmt}.'"
+        interests = ["Cuidado de la piel", "Cosméticos", "Dermatología", "Belleza natural"]
+        age = "22 - 50 años"
+        gender = "Mujeres (85%) y Hombres (15%)"
+
+    elif any(k in n_lower for k in ['smartwatch', 'reloj', 'audifono', 'auricular', 'bluetooth', 'parlante', 'cargador']) or 'tecnologia' in c_lower:
+        niche = "Tecnología & Gadgets Inteligentes"
+        pain = "marcas carísimas que cobran $500k por funciones que este dispositivo hace igual o mejor"
+        benefit = "disfrutar de máxima autonomía, sonido nítido y conectividad instantánea sin pagar de más"
+        hook_1 = "Cancelación de ruido y batería para 3 días sin pagar medio millón de pesos en una tienda de centro comercial..."
+        hook_2 = "Dejé de comprar marcas caras cuando descubrí este gadget viral..."
+        hook_3 = "Si buscas un regalo impresionante o quieres renovar tus audífonos/reloj, mira esto antes de que se agote..."
+        ugc_0_3 = "Abre la caja o se pone el dispositivo: 'Todo el mundo me pregunta cuánto me costó esto pensando que vale un platal...'"
+        ugc_3_7 = "Muestra pantalla o conectando a Bluetooth en 1 segundo: 'Se vincula al instante con cualquier celular Android o iPhone...'"
+        ugc_7_12 = "Demostración de sonido o funciones en vivo: 'La calidad es brutal, resistente al sudor y súper cómodo.'"
+        ugc_12_15 = f"Cierre: 'Pídelo contra entrega por {sugg_price_fmt} y págalo cuando lo tengas en tus manos. Clic abajo.'"
+        interests = ["Tecnología", "Gadgets", "Electrónica de consumo", "Música"]
+        age = "18 - 45 años"
+        gender = "Hombres y Mujeres"
+
+    else:
+        niche = f"E-Commerce & {category}"
+        pain = f"perder tiempo y dinero buscando soluciones para {category.lower()}"
+        benefit = f"obtener resultados profesionales, durabilidad y practicidad en tu día a día"
+        hook_1 = f"¿Por qué todo el mundo en Colombia está comprando este {name[:30]} esta semana?"
+        hook_2 = f"No compres esto a menos que quieras simplificar tu vida y ahorrar tiempo todos los días..."
+        hook_3 = f"El producto viral que llegó a Colombia y está agotando inventario en Dropi..."
+        ugc_0_3 = f"Sostiene el {name[:25]}: 'Vi este producto viral por todos lados y quise ponerlo a prueba...'"
+        ugc_3_7 = f"Muestra el detalle: 'La calidad del material es de 10 sobre 10 y cumple exactamente lo que promete...'"
+        ugc_7_12 = f"Muestra el producto en acción rápida resolviendo el problema: 'En menos de 1 minuto hace todo el trabajo.'"
+        ugc_12_15 = f"Cierre: 'Pídelo hoy por {sugg_price_fmt} con envío a todo Colombia y paga en efectivo al recibir.'"
+        interests = ["Compras en línea", "TikTok", "Estilo de vida", f"{category}"]
+        age = "22 - 55 años"
+        gender = "Hombres y Mujeres"
+
+    ad_copy = f"""🔥 ¿Todavía lidiando con {pain}?
+
+Descubre el {name.strip()}, la solución favorita de miles de colombianos para {benefit}.
+
+✅ Máxima efectividad y resultados garantizados
+✅ Material de alta durabilidad y calidad certificada
+✅ Fácil de usar desde el primer día en casa
+
+🚚 ENVÍO A TODA COLOMBIA CON PAGO CONTRA ENTREGA:
+Pide con total tranquilidad y paga en efectivo al recibir en la puerta de tu casa con Servientrega, Envía o Interrapidísimo. ¡Cero riesgos!
+
+👇 ¡Toca en 'Pedir Ahora' antes de que se agote el lote disponible!"""
+
+    master_prompt = f"""Actúa como un Media Buyer y Copywriter de élite especializado en Dropshipping con Pago Contra Entrega (COD) en Colombia.
+
+Analiza el siguiente producto ganador de Dropi Colombia:
+- Nombre: {name}
+- Categoría: {category}
+- Costo Proveedor: ${int(cost):,} COP
+- PVP Sugerido al Público: {sugg_price_fmt}
+- Margen Neto Estimado: {margin_fmt}
+
+Genera una estrategia de creativos de alta conversión:
+1. 5 Ganchos (Hooks) agresivos para los primeros 3 segundos de TikTok y Reels (enfocados en el dolor y la curiosidad del comprador colombiano).
+2. 2 Guiones de video UGC de 15 segundos para creadores de contenido (estructura: Gancho -> Problema -> Solución/Demo -> Oferta Contra Entrega).
+3. 2 Variaciones de Copy para Meta Ads (uno enfocado en dolor/problema y otro en transformación/oferta).
+4. Las 3 objeciones principales de compra en Colombia y cómo derribarlas en el video.
+5. Segmentación recomendada en Facebook Ads Manager (Edad, Género e Intereses para Colombia)."""
+
+    return {
+        "product_id": product.get('id'),
+        "product_name": name,
+        "niche": niche,
+        "hooks": [
+            {"type": "Dolor Agudo", "hook": hook_1, "desc": "Ataca la frustración cotidiana para detener el scroll de inmediato"},
+            {"type": "Curiosidad Viral", "hook": hook_2, "desc": "Despierta intriga con revelación o secreto de la industria"},
+            {"type": "Transformación & Cierre", "hook": hook_3, "desc": "Muestra el resultado final y elimina el riesgo con pago al recibir"}
+        ],
+        "ugc_script": {
+            "title": "Guión UGC de 15 Segundos (TikTok / Reels)",
+            "pacing": [
+                {"time": "0:00 - 0:03", "stage": "Gancho Scroll-Stopper", "direction": ugc_0_3},
+                {"time": "0:03 - 0:07", "stage": "Problema / Dolor", "direction": ugc_3_7},
+                {"time": "0:07 - 0:12", "stage": "Demostración 'Wow'", "direction": ugc_7_12},
+                {"time": "0:12 - 0:15", "stage": "Llamado a la Acción COD", "direction": ugc_12_15}
+            ]
+        },
+        "meta_ad_copy": {
+            "headline": f"🔥 {name[:35]} | Pago Contra Entrega",
+            "body": ad_copy,
+            "cta": "Pedir Ahora (Pago al Recibir)"
+        },
+        "target_audience": {
+            "age": age,
+            "gender": gender,
+            "interests": interests,
+            "pro_tip": "Pauta con campaña de Ventas / Conversiones en Meta Ads optimizada para Colombia usando creativos formato 9:16 (vertical)."
+        },
+        "chatgpt_master_prompt": master_prompt
+    }
+
+def get_or_generate_angles(prod_dict: dict) -> dict:
+    pid = prod_dict.get('id')
+    if not pid:
+        return generate_creative_angles(prod_dict)
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS product_angles_cache (product_id INTEGER PRIMARY KEY, angles_json TEXT, created_at TEXT)")
+        c.execute("SELECT angles_json FROM product_angles_cache WHERE product_id = ?", (pid,))
+        row = c.fetchone()
+        if row and row[0]:
+            conn.close()
+            return json.loads(row[0])
+        angles = generate_creative_angles(prod_dict)
+        c.execute("INSERT OR REPLACE INTO product_angles_cache (product_id, angles_json, created_at) VALUES (?, ?, datetime('now'))", (pid, json.dumps(angles)))
+        conn.commit()
+        conn.close()
+        return angles
+    except Exception as e:
+        print(f"[Angles Cache Error] {e}", flush=True)
+        return generate_creative_angles(prod_dict)
+
 @app.get("/api/product/{product_id}")
 def get_product_detail(product_id: int):
     conn = get_db()
@@ -646,12 +833,26 @@ def get_product_detail(product_id: int):
         prod_dict['scale_desc'] = "Ventas recurrentes en validacion"
 
     conn.close()
+    angles = get_or_generate_angles(prod_dict)
     return {
         "product": prod_dict, 
         "daily_sales": daily_sales,
         "total_units_sold": total_sales,
-        "week_sales": week_sales
+        "week_sales": week_sales,
+        "angles": angles
     }
+
+@app.get("/api/product/{product_id}/angles")
+def get_product_angles(product_id: int):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM products WHERE id = ?", (product_id,))
+    prod = c.fetchone()
+    conn.close()
+    if not prod:
+        return {"error": "Producto no encontrado"}
+    prod_dict = dict(prod)
+    return get_or_generate_angles(prod_dict)
 
 @app.get("/api/products")
 def list_products(
@@ -661,6 +862,8 @@ def list_products(
     search: Optional[str] = None,
     supplier: Optional[str] = None,
     sort_by: str = "sales",
+    ticket: Optional[str] = None,
+    badge: Optional[str] = None,
     limit: int = 48,
     offset: int = 0
 ):
@@ -710,10 +913,22 @@ def list_products(
         query += " AND (p.name LIKE ? OR p.supplier_name LIKE ? OR p.id LIKE ?)"
         params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
 
+    if ticket == "low":
+        query += " AND p.sale_price <= 35000"
+    elif ticket == "medium":
+        query += " AND p.sale_price > 35000 AND p.sale_price <= 65000"
+    elif ticket == "high":
+        query += " AND p.sale_price > 65000"
+
+    if badge == "DESPEGANDO" or sort_by == "breakout":
+        query += " AND s.today_units >= 15 AND (s.today_units * 1.0 / NULLIF(s.week_units, 0) >= 0.40 OR (s.week_units - s.today_units) <= 30)" 
+
     if sort_by == "sales" or sort_by == "sales_today":
         query += " ORDER BY s.today_units DESC, s.week_units DESC, s.units_sold DESC, p.margin DESC"
     elif sort_by == "sales_week":
         query += " ORDER BY s.week_units DESC, s.today_units DESC, s.units_sold DESC, p.margin DESC"
+    elif sort_by == "breakout":
+        query += " ORDER BY (s.today_units * 1.0 / NULLIF(s.week_units, 0.1)) DESC, s.today_units DESC"
     elif sort_by == "gmv":
         query += " ORDER BY (s.today_units * p.suggested_price) DESC, (s.week_units * p.suggested_price) DESC"
     elif sort_by == "margin":
@@ -749,6 +964,17 @@ def list_products(
     if search:
         count_query += " AND (p.name LIKE ? OR p.supplier_name LIKE ? OR p.id LIKE ?)"
         count_params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
+
+    if ticket == "low":
+        count_query += " AND p.sale_price <= 35000"
+    elif ticket == "medium":
+        count_query += " AND p.sale_price > 35000 AND p.sale_price <= 65000"
+    elif ticket == "high":
+        count_query += " AND p.sale_price > 65000"
+
+    if badge == "DESPEGANDO" or sort_by == "breakout":
+        count_query = count_query.replace("FROM products p", "FROM products p LEFT JOIN product_sales_summary s ON p.id = s.product_id")
+        count_query += " AND s.today_units >= 15 AND (s.today_units * 1.0 / NULLIF(s.week_units, 0) >= 0.40 OR (s.week_units - s.today_units) <= 30)" 
     c.execute(count_query, count_params)
     total_matching = c.fetchone()[0]
 
@@ -774,18 +1000,38 @@ def list_products(
 
         today_u = d.get('today_units', 0)
         week_u = d.get('week_units', 0)
-        if today_u >= 80 or week_u >= 300:
+        
+        # Insignia inteligente de tracción
+        if today_u >= 15 and (today_u * 1.0 / max(week_u, 1) >= 0.40 or (week_u - today_u) <= 30):
+            d['badge_type'] = "DESPEGANDO"
+            d['growth_tag'] = "🚀 Despegando Hoy"
+        elif today_u >= 80 or week_u >= 300:
             d['badge_type'] = "ESCALANDO"
-            d['growth_tag'] = "🚀 Escalando Hoy"
+            d['growth_tag'] = "🔥 Escalando Fuerte"
         elif today_u >= 15 or week_u >= 50:
             d['badge_type'] = "CONSOLIDADO"
-            d['growth_tag'] = "🔥 Ventas Activas"
+            d['growth_tag'] = "📦 Ventas Constantes"
         elif m >= 50000 and (today_u > 0 or week_u > 0):
             d['badge_type'] = "JOYA OCULTA"
             d['growth_tag'] = "💎 Joya +$50k"
         else:
             d['badge_type'] = "POTENCIAL"
             d['growth_tag'] = "⚡ Validación"
+
+        # Semáforo de stock de bodega para escalar
+        stock_val = d.get('stock', 0)
+        if stock_val >= 300:
+            d['stock_status'] = "ESCALA_SEGURA"
+            d['stock_status_label'] = "Apto para Escalar"
+        elif stock_val >= 50:
+            d['stock_status'] = "ESTABLE"
+            d['stock_status_label'] = "Stock Estable"
+        elif stock_val > 0:
+            d['stock_status'] = "CRITICO"
+            d['stock_status_label'] = "Stock Crítico"
+        else:
+            d['stock_status'] = "VERIFICAR"
+            d['stock_status_label'] = "Verificar Bodega"
 
         rows.append(d)
 
