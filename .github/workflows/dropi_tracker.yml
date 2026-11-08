@@ -9,11 +9,11 @@ on:
       pages:
         description: 'Cantidad de páginas a escanear (20 = prueba rápida | 1730 = Catálogo 100% Completo ~69.000 productos)'
         required: true
-        default: '1730'
+        default: '560'
 
 concurrency:
   group: dropi-master-scanner
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -29,7 +29,7 @@ jobs:
             -H "Authorization: token ${{ secrets.GH_PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/JulianDvd1/Tracker-scanner-worker2/actions/workflows/dropi_worker2.yml/dispatches \
-            -d '{"ref":"main","inputs":{"pages":"${{ github.event.inputs.pages || '''1730''' }}"}}' || true
+            -d '{"ref":"main","inputs":{"pages":"${{ github.event.inputs.pages || '''560''' }}"}}' || true
 
   scan_shards:
     name: Shard ${{ matrix.shard }} (${{ matrix.os }})
@@ -71,7 +71,7 @@ jobs:
           DROPI_TOKEN: ${{ secrets.DROPI_TOKEN_1 || secrets.DROPI_TOKEN }}
           PYTHONUNBUFFERED: "1"
         run: |
-          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 8 --pages ${{ github.event.inputs.pages || '1730' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
+          python cloud_worker.py --shard-id ${{ matrix.shard }} --total-shards 8 --pages ${{ github.event.inputs.pages || '560' }} --token-index ${{ matrix.token_index }} --db-name catalog_shard_${{ matrix.shard }}.db
 
       - name: Subir Base de Datos del Shard
         uses: actions/upload-artifact@v4
