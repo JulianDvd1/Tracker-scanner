@@ -68,18 +68,26 @@ def init_db_performance():
                 units_sold INTEGER DEFAULT 0,
                 events_count INTEGER DEFAULT 0,
                 last_sale TEXT DEFAULT '',
+                today_units INTEGER DEFAULT 0,
                 week_units INTEGER DEFAULT 0
             )
         """)
+        p_cols = [r[1] for r in c.execute("PRAGMA table_info(product_sales_summary)").fetchall()]
+        if 'today_units' not in p_cols:
+            c.execute("ALTER TABLE product_sales_summary ADD COLUMN today_units INTEGER DEFAULT 0")
+        if 'week_units' not in p_cols:
+            c.execute("ALTER TABLE product_sales_summary ADD COLUMN week_units INTEGER DEFAULT 0")
+
         c.execute("DELETE FROM product_sales_summary")
         c.execute("""
-            INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
+            INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, today_units, week_units)
             SELECT 
                 product_id, 
                 COALESCE(sum(units_sold), 0), 
                 count(*), 
                 COALESCE(max(recorded_at), ''),
-                COALESCE(sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END), 0)
+                COALESCE(sum(CASE WHEN datetime(recorded_at) >= datetime('now', '-24 hours') THEN units_sold ELSE 0 END), 0),
+                COALESCE(sum(CASE WHEN datetime(recorded_at) >= datetime('now', '-7 days') THEN units_sold ELSE 0 END), 0)
             FROM sales_events
             GROUP BY product_id
         """)
@@ -323,11 +331,19 @@ def get_stats():
     c.execute("SELECT count(*) FROM sales_events")
     total_sales_events = c.fetchone()[0]
 
-    c.execute("SELECT COALESCE(sum(units_sold), 0) FROM sales_events")
-    total_units_sold = c.fetchone()[0]
-
-    c.execute("SELECT count(DISTINCT product_id) FROM sales_events")
-    winning_products_count = c.fetchone()[0]
+    c.execute("""
+        SELECT 
+            COALESCE(sum(CASE WHEN datetime(recorded_at) >= datetime('now', '-24 hours') THEN units_sold ELSE 0 END), 0) as today_units,
+            COALESCE(count(DISTINCT CASE WHEN datetime(recorded_at) >= datetime('now', '-24 hours') THEN product_id END), 0) as today_winners,
+            COALESCE(sum(units_sold), 0) as total_units_sold,
+            COALESCE(count(DISTINCT product_id), 0) as winning_products_count
+        FROM sales_events
+    """)
+    s_row = c.fetchone()
+    today_units_sold = s_row[0]
+    today_winners_count = s_row[1]
+    total_units_sold = s_row[2]
+    winning_products_count = s_row[3]
 
     c.execute("""
         SELECT category, count(*) as count 
@@ -340,11 +356,15 @@ def get_stats():
     categories = [dict(r) for r in c.fetchall()]
 
     c.execute("""
-        SELECT COALESCE(sum(s.units_sold * p.suggested_price), 0)
+        SELECT 
+            COALESCE(sum(CASE WHEN datetime(s.recorded_at) >= datetime('now', '-24 hours') THEN s.units_sold * p.suggested_price ELSE 0 END), 0) as today_gmv,
+            COALESCE(sum(s.units_sold * p.suggested_price), 0) as total_gmv
         FROM sales_events s
         JOIN products p ON s.product_id = p.id
     """)
-    total_market_gmv = c.fetchone()[0]
+    gmv_row = c.fetchone()
+    today_market_gmv = gmv_row[0]
+    total_market_gmv = gmv_row[1]
 
     # Joyas Ocultas con margen superior a $50k COP
     c.execute("SELECT count(*) FROM products WHERE margin >= 50000")
@@ -406,6 +426,9 @@ def get_stats():
         "total_sales_events": total_sales_events,
         "total_units_sold": total_units_sold,
         "winning_products_count": winning_products_count,
+        "today_units_sold": today_units_sold,
+        "today_winners_count": today_winners_count,
+        "today_market_gmv": today_market_gmv,
         "hidden_gems_count": hidden_gems_count,
         "total_market_gmv": total_market_gmv,
         "top_categories": categories,
@@ -458,13 +481,16 @@ def get_leaderboard(limit: int = 50):
             COALESCE(NULLIF(p.store_name, ''), p.supplier_name, 'Proveedor Dropi') as supplier_name, 
             p.supplier_tier,
             p.sale_price, p.suggested_price, p.margin, p.image_url,
+            COALESCE(s.week_units, 0) as week_sold,
+            round(COALESCE(s.week_units * p.suggested_price, 0), 0) as week_gmv,
+            COALESCE(s.today_units, 0) as today_sold,
             COALESCE(s.units_sold, 0) as total_sold,
-            round(COALESCE(s.units_sold * p.suggested_price, 0), 0) as gmv,
+            round(COALESCE(s.units_sold * p.suggested_price, 0), 0) as total_gmv,
             COALESCE(s.events_count, 0) as sales_velocity,
             COALESCE(s.last_sale, '') as last_sale_at
         FROM products p
         LEFT JOIN product_sales_summary s ON p.id = s.product_id
-        ORDER BY total_sold DESC, p.margin DESC, p.id DESC
+        ORDER BY week_sold DESC, total_sold DESC, p.margin DESC, p.id DESC
         LIMIT ?
     """, (limit,))
     rows = []
@@ -476,6 +502,7 @@ def get_leaderboard(limit: int = 50):
         cost = d.get('sale_price') or 1
         margin = d.get('margin') or 0
         d['roi_percent'] = round((margin / cost) * 100, 1)
+        d['gmv'] = d.get('week_gmv', 0)
         
         # Benchmarks dropshipping COD inspirados en Dropdata / Kalodata
         target_cpa = round(margin * 0.35)
@@ -500,20 +527,20 @@ def get_leaderboard(limit: int = 50):
             d['return_risk'] = '10% (Bajo)'
             d['risk_color'] = 'text-emerald-500'
 
-        # Clasificacion estilo Kalodata
-        sold = d['total_sold']
-        if sold >= 800:
+        # Clasificacion estilo Kalodata (Semanal 7d)
+        sold = d.get('week_sold') or d.get('total_sold', 0)
+        if sold >= 500:
             d['tier_label'] = "MEGA WINNER"
             d['tier_color'] = "bg-amber-500/10 text-amber-600 border-amber-300 dark:border-amber-700"
-            d['growth_badge'] = "🔥 Top 1% Velocidad"
-        elif sold >= 250:
+            d['growth_badge'] = "🔥 Top 1% Semanal"
+        elif sold >= 150:
             d['tier_label'] = "SUPER SCALED"
             d['tier_color'] = "bg-indigo-500/10 text-indigo-600 border-indigo-300 dark:border-indigo-700"
-            d['growth_badge'] = "🚀 En Escala Fuerte"
+            d['growth_badge'] = "🚀 Escala Semanal"
         else:
             d['tier_label'] = "RISING STAR"
             d['tier_color'] = "bg-emerald-500/10 text-emerald-600 border-emerald-300 dark:border-emerald-700"
-            d['growth_badge'] = "✨ Creciendo Rápido"
+            d['growth_badge'] = "✨ Crecimiento Activo"
 
         rows.append(d)
         rank += 1
@@ -649,10 +676,11 @@ def list_products(
             p.supplier_tier,
             p.sale_price, p.suggested_price, p.margin, p.image_url,
             COALESCE(p.stock, 0) as stock,
+            COALESCE(s.today_units, 0) as today_units,
+            COALESCE(s.week_units, 0) as week_units,
             COALESCE(s.units_sold, 0) as units_sold,
             COALESCE(s.events_count, 0) as events_count,
             COALESCE(s.last_sale, '') as last_sale,
-            COALESCE(s.week_units, 0) as week_units,
             p.created_at
         FROM products p
         LEFT JOIN product_sales_summary s ON p.id = s.product_id
@@ -682,10 +710,12 @@ def list_products(
         query += " AND (p.name LIKE ? OR p.supplier_name LIKE ? OR p.id LIKE ?)"
         params.extend([f"%{search}%", f"%{search}%", f"%{search}%"])
 
-    if sort_by == "sales":
-        query += " ORDER BY units_sold DESC, p.margin DESC"
+    if sort_by == "sales" or sort_by == "sales_today":
+        query += " ORDER BY s.today_units DESC, s.week_units DESC, s.units_sold DESC, p.margin DESC"
+    elif sort_by == "sales_week":
+        query += " ORDER BY s.week_units DESC, s.today_units DESC, s.units_sold DESC, p.margin DESC"
     elif sort_by == "gmv":
-        query += " ORDER BY (units_sold * p.suggested_price) DESC"
+        query += " ORDER BY (s.today_units * p.suggested_price) DESC, (s.week_units * p.suggested_price) DESC"
     elif sort_by == "margin":
         query += " ORDER BY p.margin DESC"
     elif sort_by == "price_asc":
@@ -742,13 +772,15 @@ def list_products(
         d['net_profit_est'] = cod['net_profit']
         d['break_even_roas'] = cod['roas_break_even']
 
-        if u >= 300:
-            d['badge_type'] = "CONSOLIDADO"
-            d['growth_tag'] = "🔥 Top 1% Volumen"
-        elif u >= 40:
+        today_u = d.get('today_units', 0)
+        week_u = d.get('week_units', 0)
+        if today_u >= 80 or week_u >= 300:
             d['badge_type'] = "ESCALANDO"
-            d['growth_tag'] = "🚀 Escalando Fuerte"
-        elif m >= 50000:
+            d['growth_tag'] = "🚀 Escalando Hoy"
+        elif today_u >= 15 or week_u >= 50:
+            d['badge_type'] = "CONSOLIDADO"
+            d['growth_tag'] = "🔥 Ventas Activas"
+        elif m >= 50000 and (today_u > 0 or week_u > 0):
             d['badge_type'] = "JOYA OCULTA"
             d['growth_tag'] = "💎 Joya +$50k"
         else:

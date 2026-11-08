@@ -147,15 +147,21 @@
         <div class="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Vistas Principales</div>
         
         <button onclick="switchView('radar')" id="nav-btn-radar" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 font-semibold text-xs border border-indigo-100 dark:border-indigo-800 transition">
-          <i class="fa-solid fa-fire text-indigo-600 w-4 text-center"></i>
-          <span>Winning Radar</span>
-          <span class="ml-auto text-[10px] bg-indigo-600 text-white font-bold px-1.5 py-0.2 rounded-full">LIVE</span>
+          <i class="fa-solid fa-fire text-amber-500 w-4 text-center"></i>
+          <div class="flex flex-col text-left">
+            <span class="leading-tight">Winning Radar</span>
+            <span class="text-[9px] text-slate-400 font-normal">Más Vendidos Hoy</span>
+          </div>
+          <span class="ml-auto text-[10px] bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full">24H</span>
         </button>
 
         <button onclick="switchView('leaderboard')" id="nav-btn-leaderboard" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 font-medium text-xs transition">
           <i class="fa-solid fa-trophy text-amber-500 w-4 text-center"></i>
-          <span>Top Leaderboard</span>
-          <span class="ml-auto text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-1.5 py-0.2 rounded font-mono">KALO</span>
+          <div class="flex flex-col text-left">
+            <span class="leading-tight">Top Leaderboard</span>
+            <span class="text-[9px] text-slate-400 font-normal">Más Vendidos Semana</span>
+          </div>
+          <span class="ml-auto text-[10px] bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold px-1.5 py-0.2 rounded font-mono">7 DÍAS</span>
         </button>
 
         <button onclick="switchView('watchlist')" id="nav-btn-watchlist" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 font-medium text-xs transition">
@@ -323,11 +329,11 @@
                 <span class="text-emerald-400 font-mono text-[10px] w-full sm:w-auto mt-0.5 sm:mt-0" id="hero-last-sync"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Barrido: Calculando...</span>
               </div>
               <h1 class="text-xl sm:text-2xl font-heading font-extrabold text-white tracking-tight flex items-center gap-2">
-                <span>Radar de Ganadores & Velocidad Diaria</span>
-                <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm font-sans">LIVE</span>
+                <span>Radar de Ganadores de Hoy (24H)</span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm font-sans">EN VIVO</span>
               </h1>
               <p class="text-xs text-slate-400 mt-1.5 max-w-xl leading-relaxed">
-                Monitorea ventas desglosadas por cada día, proveedores certificados y espía creativos con 1 clic en Meta, TikTok y Google.
+                Descubre los productos con mayor tracción, pedidos y ventas en las últimas 24 horas en Colombia. Espía creativos activos en Meta, TikTok y Google.
               </p>
             </div>
 
@@ -343,30 +349,30 @@
                 <span class="text-base font-black text-white font-mono mt-0.5 block" id="banner-total-prods">--</span>
               </div>
 
-              <!-- Unds Vendidas -->
-              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-emerald-500/20 relative group cursor-default" title="Unidades totales vendidas entre los escaneos">
+              <!-- Unds Vendidas Hoy -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-emerald-500/20 relative group cursor-default" title="Unidades vendidas en las últimas 24 horas">
                 <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mx-auto mb-1.5 flex items-center justify-center text-xs">
                   <i class="fa-solid fa-bolt"></i>
                 </div>
-                <span class="text-[9px] text-emerald-400/90 block uppercase font-bold tracking-wider">Unds Vendidas</span>
+                <span class="text-[9px] text-emerald-400/90 block uppercase font-bold tracking-wider">Vendidos Hoy</span>
                 <span class="text-base font-black text-emerald-400 font-mono mt-0.5 block" id="banner-units">--</span>
               </div>
 
-              <!-- En Venta Activa -->
-              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-indigo-500/20 relative group cursor-default" title="Productos con salidas de stock confirmadas por pauta activa">
+              <!-- Ganadores Hoy -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-indigo-500/20 relative group cursor-default" title="Productos con ventas activas en las últimas 24 horas">
                 <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 mx-auto mb-1.5 flex items-center justify-center text-xs">
                   <i class="fa-solid fa-rocket"></i>
                 </div>
-                <span class="text-[9px] text-indigo-400 block uppercase font-bold tracking-wider">En Venta Activa</span>
+                <span class="text-[9px] text-indigo-400 block uppercase font-bold tracking-wider">Ganadores Hoy</span>
                 <span class="text-base font-black text-indigo-300 font-mono mt-0.5 block" id="banner-winners">--</span>
               </div>
 
-              <!-- Volumen GMV -->
-              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-amber-500/20 relative group cursor-default" title="Facturación estimada en el mercado">
+              <!-- GMV Hoy -->
+              <div class="glass-stat-card rounded-2xl p-3.5 text-center min-w-[105px] border border-amber-500/20 relative group cursor-default" title="Facturación bruta estimada en las últimas 24 horas">
                 <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30 mx-auto mb-1.5 flex items-center justify-center text-xs">
                   <i class="fa-solid fa-sack-dollar"></i>
                 </div>
-                <span class="text-[9px] text-amber-400/90 block uppercase font-bold tracking-wider">Volumen GMV</span>
+                <span class="text-[9px] text-amber-400/90 block uppercase font-bold tracking-wider">GMV Hoy (24h)</span>
                 <span class="text-base font-black text-amber-300 font-mono mt-0.5 block" id="banner-gmv">--</span>
               </div>
 
@@ -445,8 +451,9 @@
               <div class="flex items-center gap-1.5">
                 <span class="text-xs text-slate-400 font-medium">Ordenar:</span>
                 <select id="sort-select" class="app-input border text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500">
-                  <option value="sales">🔥 Más Vendidos</option>
-                  <option value="margin">💰 Mayor Margen</option>
+                  <option value="sales">🔥 Más Vendidos Hoy (24h)</option>
+                  <option value="sales_week">🏆 Más Vendidos Semana (7d)</option>
+                  <option value="margin">💰 Mayor Margen Neto</option>
                   <option value="newest">⚡ Más Recientes</option>
                   <option value="price_asc">📉 Menor Costo</option>
                   <option value="price_desc">📈 Mayor Costo</option>
@@ -488,17 +495,18 @@
               <i class="fa-solid fa-trophy text-amber-500"></i>
               <span>Kalodata & Dropdata Intelligence Index</span>
             </div>
-            <h1 class="text-xl md:text-2xl font-heading font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Top 50 Leaderboard de Facturación & Velocidad
+            <h1 class="text-xl md:text-2xl font-heading font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <span>Top Leaderboard Semanal (7 Días)</span>
+              <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-500 border border-amber-500/30 font-sans">TOP 50</span>
             </h1>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
-              Ranking de productos con mayor facturación bruta estimada (GMV), rotación diaria y benchmarks de pauta calculados para Dropshipping COD.
+              Ranking consolidado de los 50 productos con mayor volumen y facturación acumulada de la semana (GMV), rotación y benchmarks para Dropshipping COD.
             </p>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 shrink-0">
             <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[120px]">
-              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Top 1 GMV</span>
+              <span class="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Top 1 GMV Semanal</span>
               <span class="text-base font-bold text-emerald-600 dark:text-emerald-400 font-mono" id="kalo-top1-gmv">$143.4M</span>
             </div>
             <div class="app-card bg-slate-50 dark:bg-slate-900/60 rounded-xl p-3.5 text-center min-w-[120px]">
@@ -546,12 +554,12 @@
                 <tr class="bg-slate-50 dark:bg-slate-900/80 border-b border-inherit text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   <th class="py-3.5 px-4 text-center w-14"># Rank</th>
                   <th class="py-3.5 px-4">Producto & Categoría</th>
-                  <th class="py-3.5 px-4 text-right">GMV Estimado (COP)</th>
-                  <th class="py-3.5 px-4 text-right">Unidades Vendidas</th>
+                  <th class="py-3.5 px-4 text-right">GMV Semanal (COP)</th>
+                  <th class="py-3.5 px-4 text-right">Ventas Semanales</th>
                   <th class="py-3.5 px-4 text-right">Margen Neto</th>
                   <th class="py-3.5 px-4 text-center">Benchmark CPA</th>
                   <th class="py-3.5 px-4 text-center">Devolución Est.</th>
-                  <th class="py-3.5 px-4 text-center">Momentum</th>
+                  <th class="py-3.5 px-4 text-center">Momentum Semanal</th>
                   <th class="py-3.5 px-4 text-center">Acciones</th>
                 </tr>
               </thead>
@@ -873,9 +881,9 @@
         document.getElementById('sidebar-total-prods').innerText = totalProds + ' auditados';
         const bannerTotal = document.getElementById('banner-total-prods');
         if (bannerTotal) bannerTotal.innerText = totalProds;
-        document.getElementById('banner-units').innerText = Number(data.total_units_sold).toLocaleString('es-CO');
-        document.getElementById('banner-winners').innerText = Number(data.winning_products_count).toLocaleString('es-CO');
-        document.getElementById('banner-gmv').innerText = '$' + (Number(data.total_market_gmv) / 1000000).toFixed(1) + 'M';
+        document.getElementById('banner-units').innerText = Number(data.today_units_sold || data.total_units_sold).toLocaleString('es-CO');
+        document.getElementById('banner-winners').innerText = Number(data.today_winners_count || data.winning_products_count).toLocaleString('es-CO');
+        document.getElementById('banner-gmv').innerText = '$' + (Number(data.today_market_gmv || data.total_market_gmv) / 1000000).toFixed(1) + 'M';
         
         // Sincronización en cabecera (Desktop y Móvil)
         const syncElem = document.getElementById('header-last-sync');
@@ -939,10 +947,10 @@
 
       // Badge de Escala Dinámico High-End
       let scaleBadge = '';
-      if (p.badge_type === 'ESCALANDO') {
-        scaleBadge = `<span class="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-orange-500/30 tracking-wide"><i class="fa-solid fa-rocket text-[9px]"></i> ESCALANDO</span>`;
-      } else if (p.badge_type === 'CONSOLIDADO') {
-        scaleBadge = `<span class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-indigo-600/30 tracking-wide"><i class="fa-solid fa-fire text-amber-300 text-[9px]"></i> CONSOLIDADO</span>`;
+      if (p.today_units > 0) {
+        scaleBadge = `<span class="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-orange-500/30 tracking-wide"><i class="fa-solid fa-fire text-[9px]"></i> ${Number(p.today_units).toLocaleString('es-CO')} HOY</span>`;
+      } else if (p.week_units > 0) {
+        scaleBadge = `<span class="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-indigo-600/30 tracking-wide"><i class="fa-solid fa-calendar-week text-amber-300 text-[9px]"></i> ${Number(p.week_units).toLocaleString('es-CO')} SEMANA</span>`;
       } else if (p.badge_type === 'JOYA OCULTA') {
         scaleBadge = `<span class="bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md shadow-fuchsia-600/30 tracking-wide"><i class="fa-solid fa-gem text-purple-200 text-[9px]"></i> JOYA +$50K</span>`;
       }
@@ -1060,20 +1068,22 @@
 
               <!-- MICRO-MÉTRICAS DE TRACCIÓN (3 Columnas Limpias y Ordenadas) -->
               <div class="grid grid-cols-3 gap-2 px-1 mb-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/60 text-center font-mono">
-                <!-- Ventas -->
-                <div class="truncate" title="Unidades totales vendidas detectadas">
-                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">Ventas</span>
-                  <span class="text-xs font-black ${p.units_sold > 0 ? 'text-slate-900 dark:text-white' : 'text-slate-400'} flex items-center justify-center gap-1 mt-0.5">
-                    <i class="fa-solid fa-bolt text-[9px] text-amber-500"></i>${Number(p.units_sold).toLocaleString('es-CO')}
+                <!-- Ventas Hoy -->
+                <div class="truncate" title="Unidades vendidas hoy (24h) y total acumulado">
+                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">Vendido Hoy</span>
+                  <span class="text-xs font-black ${p.today_units > 0 ? 'text-amber-500' : 'text-slate-400'} flex items-center justify-center gap-1 mt-0.5">
+                    <i class="fa-solid fa-bolt text-[9px] text-amber-500"></i>${Number(p.today_units).toLocaleString('es-CO')}
                   </span>
+                  <span class="text-[9px] text-slate-400 block mt-0.5">${Number(p.week_units || p.units_sold).toLocaleString('es-CO')} sem</span>
                 </div>
 
-                <!-- GMV Facturado -->
-                <div class="truncate" title="Volumen GMV facturado estimado">
-                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">GMV</span>
+                <!-- GMV Hoy -->
+                <div class="truncate" title="Facturación estimada hoy en Colombia">
+                  <span class="text-[9px] uppercase font-sans font-semibold text-slate-400 block">GMV Hoy</span>
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block mt-0.5">
-                    $${(Number(p.estimated_gmv || (p.units_sold * (p.suggested_price || p.sale_price))) / 1000000).toFixed(1)}M
+                    $${(Number(p.today_units * (p.suggested_price || p.sale_price)) / 1000000).toFixed(1)}M
                   </span>
+                  <span class="text-[9px] text-emerald-500 font-medium block mt-0.5">COD Est.</span>
                 </div>
 
                 <!-- Max CPA Ads -->
@@ -1082,6 +1092,7 @@
                   <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 block mt-0.5">
                     $${Number(p.target_cpa || Math.max(Math.round(p.margin * 0.35), 12000)).toLocaleString('es-CO')}
                   </span>
+                  <span class="text-[9px] text-slate-400 block mt-0.5">${p.roi_percent}% ROI</span>
                 </div>
               </div>
             </div>
@@ -1375,24 +1386,24 @@
               </div>
             </td>
 
-            <!-- GMV Estimado -->
+            <!-- GMV Semanal Estimado -->
             <td class="py-3 px-4 text-right font-mono">
               <div class="font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                $${(Number(item.gmv) / 1000000).toFixed(1)}M
+                $${(Number(item.week_gmv || item.gmv) / 1000000).toFixed(1)}M
               </div>
-              <div class="text-[10px] text-slate-400 font-sans">Facturación COP</div>
+              <div class="text-[10px] text-slate-400 font-sans">GMV 7 Días</div>
             </td>
 
-            <!-- Unidades Vendidas -->
+            <!-- Ventas Semanales -->
             <td class="py-3 px-4 text-right font-mono">
               <div class="font-bold text-slate-900 dark:text-white text-xs">
-                ${Number(item.total_sold).toLocaleString('es-CO')} unds
+                ${Number(item.week_sold || item.total_sold).toLocaleString('es-CO')} unds
               </div>
-              ${item.sales_velocity >= 4 ? 
-                `<div class="text-[10px] text-emerald-500 font-bold font-sans flex items-center justify-end gap-1">
-                   <i class="fa-solid fa-fire text-[9px] text-amber-500"></i>${item.sales_velocity} ciclos constantes
+              ${item.today_sold > 0 ? 
+                `<div class="text-[10px] text-amber-500 font-bold font-sans flex items-center justify-end gap-1">
+                   <i class="fa-solid fa-fire text-[9px]"></i>+${Number(item.today_sold).toLocaleString('es-CO')} hoy
                  </div>` : 
-                `<div class="text-[10px] text-slate-400 font-sans">${item.sales_velocity} ciclos</div>`
+                `<div class="text-[10px] text-slate-400 font-sans">Semana completa</div>`
               }
             </td>
 
