@@ -232,6 +232,7 @@ def merge_all_shards():
             units_sold INTEGER DEFAULT 0,
             events_count INTEGER DEFAULT 0,
             last_sale TEXT DEFAULT '',
+            today_units INTEGER DEFAULT 0,
             week_units INTEGER DEFAULT 0
         )
     """)
@@ -245,13 +246,14 @@ def merge_all_shards():
 
     c_master.execute("DELETE FROM product_sales_summary")
     c_master.execute("""
-        INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, week_units)
+        INSERT INTO product_sales_summary (product_id, units_sold, events_count, last_sale, today_units, week_units)
         SELECT 
             product_id, 
             COALESCE(sum(units_sold), 0), 
             count(*), 
             COALESCE(max(recorded_at), ''),
-            COALESCE(sum(CASE WHEN date(recorded_at) >= date('now', '-7 days') THEN units_sold ELSE 0 END), 0)
+            COALESCE(sum(CASE WHEN datetime(recorded_at) >= datetime('now', '-24 hours') THEN units_sold ELSE 0 END), 0),
+            COALESCE(sum(CASE WHEN datetime(recorded_at) >= datetime('now', '-7 days') THEN units_sold ELSE 0 END), 0)
         FROM sales_events
         GROUP BY product_id
     """)
@@ -285,6 +287,12 @@ def merge_all_shards():
     print(f" - Inserciones totales procesadas: {total_prods_merged:,}")
     print(f" - Registros de stock: {total_stocks:,}")
     print(f" - Ventas nuevas detectadas: {total_sales_detected:,}")
+
+    # Guardrail de integridad: Si el catálogo tiene menos de 60,000 productos, no sobreescribir el release de producción
+    if unique_prods < 60000:
+        print(f"\n[CRITICAL WARNING] El catálogo consolidado contiene solo {unique_prods:,} productos (< 60,000).")
+        print("[PROTECCIÓN ACTIVA] Abortando empaquetado para evitar corromper o degradar el catálogo maestro de 90k en producción.")
+        sys.exit(1)
 
     # Comprimir a catalog.db.zip
     zip_path = "catalog.db.zip"

@@ -491,6 +491,7 @@ def get_leaderboard(limit: int = 50):
             COALESCE(s.last_sale, '') as last_sale_at
         FROM products p
         LEFT JOIN product_sales_summary s ON p.id = s.product_id
+        WHERE COALESCE(s.week_units, 0) > 0
         ORDER BY week_sold DESC, total_sold DESC, p.margin DESC, p.id DESC
         LIMIT ?
     """, (limit,))
