@@ -771,6 +771,85 @@
     </div>
   </div>
 
+  <!-- ================= MODAL ESTUDIO CREATIVO IA ================= -->
+  <div id="ai-creative-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden" onclick="if(event.target === this) closeAiCreativeStudio()">
+    <div class="app-card rounded-2xl sm:rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-4 sm:p-6 relative shadow-2xl border border-slate-200/80 dark:border-slate-800/80">
+      <button onclick="closeAiCreativeStudio()" class="absolute top-4 sm:top-5 right-4 sm:right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition cursor-pointer z-10" title="Cerrar Estudio IA (Esc)">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <!-- Cabecera del Estudio IA -->
+      <div class="flex items-center gap-3 mb-4 pb-3 border-b border-inherit pr-10">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white text-base shadow-md shadow-indigo-500/25 shrink-0">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">DropiSpy AI Creative Studio</h3>
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">DIRECT-RESPONSE</span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Genera ángulos de pauta, guiones UGC de 15s y copys vendedores entrenados para Colombia</p>
+        </div>
+      </div>
+
+      <!-- Resumen del Producto Seleccionado -->
+      <div id="ai-modal-prod-summary" class="mb-4 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-inherit flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl p-1 shrink-0 flex items-center justify-center border border-inherit">
+            <img id="ai-prod-thumb" src="" alt="" class="w-full h-full object-contain">
+          </div>
+          <div class="min-w-0">
+            <h4 id="ai-prod-name" class="text-xs font-bold text-slate-900 dark:text-white truncate">Cargando producto...</h4>
+            <div class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              <span id="ai-prod-cat" class="text-indigo-600 dark:text-indigo-400 font-semibold">General</span>
+              <span>•</span>
+              <span id="ai-prod-pricing" class="font-mono text-slate-600 dark:text-slate-300">Costo Dropi sugerido</span>
+            </div>
+          </div>
+        </div>
+        <div class="shrink-0 text-right">
+          <span class="text-[9px] uppercase font-bold text-slate-400 block">Estrategia Direct-Response</span>
+          <span class="text-xs font-black text-emerald-500 font-mono">Alta Conversión</span>
+        </div>
+      </div>
+
+      <!-- Barra de Control del Generador IA ("Donde está lo de la IA que genera?") -->
+      <div class="mb-5 p-3.5 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 dark:from-indigo-950/30 dark:via-purple-950/30 dark:to-pink-950/30 rounded-2xl border border-indigo-500/20 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-1.5">Enfoque Psicológico de Pauta:</span>
+          <div class="flex items-center gap-1.5 flex-wrap" id="ai-angle-selector">
+            <button type="button" onclick="setAiAngleMode('all')" class="ai-mode-pill active px-3 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white transition shadow-xs cursor-pointer">⚡ Todos los Ángulos</button>
+            <button type="button" onclick="setAiAngleMode('dolor')" class="ai-mode-pill px-3 py-1 rounded-lg text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition shadow-xs cursor-pointer">🔥 Dolor Agudo</button>
+            <button type="button" onclick="setAiAngleMode('curiosidad')" class="ai-mode-pill px-3 py-1 rounded-lg text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition shadow-xs cursor-pointer">💡 Curiosidad Viral</button>
+            <button type="button" onclick="setAiAngleMode('oferta')" class="ai-mode-pill px-3 py-1 rounded-lg text-xs font-medium app-card text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition shadow-xs cursor-pointer">🎯 Oferta & COD</button>
+          </div>
+        </div>
+
+        <button id="btn-trigger-ai" type="button" onclick="runAiGenerator(true)" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-2 shadow-md shadow-indigo-600/25 transition active:scale-95 cursor-pointer">
+          <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+          <span id="btn-trigger-ai-text">✨ Generar con IA</span>
+        </button>
+      </div>
+
+      <!-- Estado de Carga con Animación IA -->
+      <div id="ai-loading-container" class="hidden py-10 text-center">
+        <div class="relative w-14 h-14 mx-auto mb-3">
+          <div class="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-ping"></div>
+          <div class="relative w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white text-xl shadow-lg shadow-indigo-500/30">
+            <i class="fa-solid fa-brain animate-pulse"></i>
+          </div>
+        </div>
+        <p class="text-sm font-bold text-slate-900 dark:text-white" id="ai-step-text">Entrenando IA con dolores del avatar colombiano...</p>
+        <span class="text-xs text-slate-400 mt-1 block">Generando ganchos para TikTok, guión UGC y copy persuasivo</span>
+      </div>
+
+      <!-- Contenedor de Resultados IA -->
+      <div id="ai-results-container" class="space-y-4">
+        <!-- Inyectado dinámicamente -->
+      </div>
+    </div>
+  </div>
+
   <!-- ================= MODAL CALCULADORA INTELIGENTE COD ================= -->
   <div id="roi-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closeRoiModal()">
     <div id="roi-modal-card" class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -1066,18 +1145,18 @@
               decoding="async"
             >
             
-            <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+            <div class="absolute top-3 left-3 flex flex-col items-start gap-1.5 z-10">
               ${scaleBadge}
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
-                  ${p.category || 'General'}
-                </span>
-                ${stockBadge}
-              </div>
+              <span class="bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-xs">
+                ${p.category || 'General'}
+              </span>
             </div>
 
-            <!-- Acciones Top Right: Favorito & Comparar -->
-            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10 opacity-75 group-hover:opacity-100 transition-opacity duration-150" onclick="event.stopPropagation()">
+            <!-- Acciones Top Right: IA Creativos, Comparar & Favorito -->
+            <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10 opacity-80 group-hover:opacity-100 transition-opacity duration-150" onclick="event.stopPropagation()">
+              <button onclick="openAiCreativeStudio(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.image_url}', '${p.category}')" class="w-7 h-7 rounded-xl bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800 flex items-center justify-center text-xs text-purple-600 dark:text-purple-400 hover:scale-110 transition shadow-xs" title="Generador de Ángulos & Copys IA">
+                <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i>
+              </button>
               <button onclick="toggleCompare(${p.id})" class="w-7 h-7 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs ${isComparing ? 'text-indigo-600 font-bold border-indigo-500' : 'text-slate-400 hover:text-indigo-600'} transition shadow-xs" title="Comparar producto">
                 <i class="fa-solid fa-code-compare"></i>
               </button>
@@ -1893,6 +1972,197 @@
     }
 
     // Modal Detalle con Ventas por DÍA SEPARADO
+    // ================= AI CREATIVE STUDIO ENGINE =================
+    let _currentAiProductId = null;
+    let _currentAiFocus = 'all';
+
+    function setAiAngleMode(mode) {
+      _currentAiFocus = mode;
+      document.querySelectorAll('.ai-mode-pill').forEach(btn => {
+        btn.classList.remove('active', 'bg-indigo-600', 'text-white');
+        btn.classList.add('app-card', 'text-slate-600', 'dark:text-slate-300');
+      });
+      if (event && event.target) {
+        event.target.classList.add('active', 'bg-indigo-600', 'text-white');
+        event.target.classList.remove('app-card', 'text-slate-600', 'dark:text-slate-300');
+      }
+      runAiGenerator(false);
+    }
+
+    async function openAiCreativeStudio(productId, name, img, cat) {
+      _currentAiProductId = productId;
+      _currentAiFocus = 'all';
+      const modal = document.getElementById('ai-creative-modal');
+      modal.classList.remove('hidden');
+
+      if (name) {
+        document.getElementById('ai-prod-name').textContent = name;
+        if (img) document.getElementById('ai-prod-thumb').src = img;
+        if (cat) document.getElementById('ai-prod-cat').textContent = cat;
+      }
+
+      // Reiniciar selector a 'all'
+      document.querySelectorAll('.ai-mode-pill').forEach((btn, idx) => {
+        if (idx === 0) {
+          btn.classList.add('active', 'bg-indigo-600', 'text-white');
+          btn.classList.remove('app-card', 'text-slate-600', 'dark:text-slate-300');
+        } else {
+          btn.classList.remove('active', 'bg-indigo-600', 'text-white');
+          btn.classList.add('app-card', 'text-slate-600', 'dark:text-slate-300');
+        }
+      });
+
+      runAiGenerator(false);
+    }
+
+    function closeAiCreativeStudio() {
+      const modal = document.getElementById('ai-creative-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function runAiGenerator(forceRegenerate = false) {
+      if (!_currentAiProductId) return;
+
+      const loadingBox = document.getElementById('ai-loading-container');
+      const resultsBox = document.getElementById('ai-results-container');
+      const stepText = document.getElementById('ai-step-text');
+      const btn = document.getElementById('btn-trigger-ai');
+      const btnText = document.getElementById('btn-trigger-ai-text');
+
+      loadingBox.classList.remove('hidden');
+      resultsBox.classList.add('hidden');
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.textContent = 'Generando con IA...';
+
+      const steps = [
+        "Analizando dolores y objeciones de compra en Colombia...",
+        "Redactando 3 ganchos magnéticos para TikTok y Reels (3s)...",
+        "Estructurando guión UGC paso a paso y copy persuasivo Meta Ads..."
+      ];
+      let stepIdx = 0;
+      stepText.textContent = steps[0];
+      const stepInterval = setInterval(() => {
+        stepIdx = (stepIdx + 1) % steps.length;
+        stepText.textContent = steps[stepIdx];
+      }, 350);
+
+      try {
+        const url = `/api/product/${_currentAiProductId}/angles?regenerate=${forceRegenerate}&focus=${_currentAiFocus}`;
+        const res = await fetch(url);
+        const a = await res.json();
+        
+        clearInterval(stepInterval);
+        setTimeout(() => {
+          renderAiResults(a);
+          loadingBox.classList.add('hidden');
+          resultsBox.classList.remove('hidden');
+          if (btn) btn.disabled = false;
+          if (btnText) btnText.textContent = forceRegenerate ? '🔄 Regenerar con IA' : '✨ Generar con IA';
+        }, 450);
+      } catch (err) {
+        clearInterval(stepInterval);
+        loadingBox.classList.add('hidden');
+        resultsBox.classList.remove('hidden');
+        resultsBox.innerHTML = `<div class="p-6 text-center text-rose-500 font-bold">Error al generar copys con IA. Inténtalo de nuevo.</div>`;
+        if (btn) btn.disabled = false;
+        if (btnText) btnText.textContent = '✨ Generar con IA';
+      }
+    }
+
+    function renderAiResults(a) {
+      window._currentProductAngles = a;
+      if (a.product_name) document.getElementById('ai-prod-name').textContent = a.product_name;
+
+      const hooksHtml = a.hooks.map((h, i) => `
+        <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit relative group flex flex-col justify-between shadow-xs">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                Gancho #${i + 1} • ${h.type}
+              </span>
+              <button onclick="copyToClipboard('${h.hook.replace(/'/g, "\\'")}', this)" class="text-slate-400 hover:text-indigo-600 text-xs transition cursor-pointer" title="Copiar gancho">
+                <i class="fa-regular fa-copy"></i>
+              </button>
+            </div>
+            <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 italic leading-snug">"${h.hook}"</p>
+          </div>
+          <span class="text-[10px] text-slate-400 mt-2 block">${h.desc}</span>
+        </div>
+      `).join('');
+
+      const pacingHtml = a.ugc_script.pacing.map(p => `
+        <div class="flex gap-2.5 text-xs pb-2 border-b border-inherit last:border-0 last:pb-0">
+          <span class="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0 w-20">${p.time}</span>
+          <div>
+            <strong class="text-slate-900 dark:text-white block text-[11px]">${p.stage}</strong>
+            <span class="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">${p.direction}</span>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('ai-results-container').innerHTML = `
+        <!-- Barra Superior: Audiencia & Mega Prompt ChatGPT -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/80">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Público Sugerido:</span>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200">${a.target_audience.age} • ${a.target_audience.gender}</span>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap mt-1">
+              ${a.target_audience.interests.map(it => `<span class="px-2 py-0.5 rounded-md bg-white dark:bg-slate-800 text-[10px] font-medium text-slate-700 dark:text-slate-300 border border-inherit">${it}</span>`).join('')}
+            </div>
+          </div>
+          <button onclick="copyMasterPrompt()" class="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" title="Copiar Prompt Maestro para ChatGPT">
+            <i class="fa-solid fa-robot"></i>
+            <span>Copiar Mega-Prompt ChatGPT</span>
+          </button>
+        </div>
+
+        <!-- 3 Ganchos Virales -->
+        <div>
+          <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-2">3 Ganchos (Hooks) para los primeros 3 segundos:</span>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            ${hooksHtml}
+          </div>
+        </div>
+
+        <!-- Guión UGC y Copy Meta Ads -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
+          <!-- Guión UGC 15s -->
+          <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit flex flex-col justify-between shadow-xs">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <i class="fa-solid fa-video text-rose-500"></i> Guión UGC de 15 Segundos
+                </span>
+                <button onclick="copyUgcScript()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer">
+                  <i class="fa-regular fa-copy"></i> Copiar Guión
+                </button>
+              </div>
+              <div class="space-y-2 mt-2">
+                ${pacingHtml}
+              </div>
+            </div>
+          </div>
+
+          <!-- Copy Meta Ads -->
+          <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit flex flex-col justify-between shadow-xs">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <i class="fa-brands fa-meta text-blue-500"></i> Copy Persuasivo Meta Ads (COD)
+                </span>
+                <button onclick="copyMetaAdCopy()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer">
+                  <i class="fa-regular fa-copy"></i> Copiar Copy
+                </button>
+              </div>
+              <pre class="font-sans text-[11px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar p-2.5 bg-slate-50 dark:bg-slate-950/50 rounded-lg border border-inherit select-all">${a.meta_ad_copy.body}</pre>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     async function openProductModal(productId) {
       const modal = document.getElementById('product-modal');
       const content = document.getElementById('modal-content');
@@ -1955,122 +2225,21 @@
                   <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">+$${Number(p.margin).toLocaleString('es-CO')}</span>
                 </div>
               </div>
+
+              <!-- BOTÓN DEDICADO ESTUDIO CREATIVO IA -->
+              <div class="mt-3">
+                <button 
+                  type="button"
+                  onclick="openAiCreativeStudio(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.image_url}', '${p.category}')" 
+                  class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 transition active:scale-98 cursor-pointer"
+                >
+                  <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                  <span>Generador de Ángulos & Copys IA</span>
+                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/20 uppercase tracking-wider">Lanzar IA</span>
+                </button>
+              </div>
             </div>
           </div>
-
-          <!-- SECCIÓN COPYWRITER & ÁNGULOS DE VENTA CON IA DIRECT-RESPONSE -->
-          ${data.angles ? (() => {
-            const a = data.angles;
-            window._currentProductAngles = a;
-            const hooksHtml = a.hooks.map((h, i) => `
-              <div class="app-card bg-white dark:bg-slate-900/80 p-3 rounded-xl border border-inherit relative group flex flex-col justify-between shadow-xs">
-                <div>
-                  <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                      Gancho #${i + 1} • ${h.type}
-                    </span>
-                    <button onclick="copyToClipboard('${h.hook.replace(/'/g, "\\'")}', this)" class="text-slate-400 hover:text-indigo-600 text-xs transition cursor-pointer" title="Copiar gancho">
-                      <i class="fa-regular fa-copy"></i>
-                    </button>
-                  </div>
-                  <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 italic leading-snug">"${h.hook}"</p>
-                </div>
-                <span class="text-[10px] text-slate-400 mt-2 block">${h.desc}</span>
-              </div>
-            `).join('');
-
-            const pacingHtml = a.ugc_script.pacing.map(p => `
-              <div class="flex gap-2.5 text-xs pb-2 border-b border-inherit last:border-0 last:pb-0">
-                <span class="font-mono text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0 w-20">${p.time}</span>
-                <div>
-                  <strong class="text-slate-900 dark:text-white block text-[11px]">${p.stage}</strong>
-                  <span class="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">${p.direction}</span>
-                </div>
-              </div>
-            `).join('');
-
-            return `
-              <div class="app-card bg-slate-50 dark:bg-slate-900/60 p-4 sm:p-5 rounded-2xl border mb-5 space-y-3.5">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-inherit pb-3">
-                  <div>
-                    <div class="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 text-xs font-black uppercase tracking-wider">
-                      <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Ángulos de Venta & Copys de Pauta (IA)
-                    </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Estrategia direct-response para TikTok, Reels y Meta Ads en Colombia</p>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button onclick="copyMasterPrompt()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" title="Copiar Prompt Maestro para ChatGPT">
-                      <i class="fa-solid fa-robot"></i>
-                      <span>Copiar Mega-Prompt ChatGPT</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 3 Hooks Virales -->
-                <div>
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-2">3 Ganchos (Hooks) para los primeros 3 segundos:</span>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                    ${hooksHtml}
-                  </div>
-                </div>
-
-                <!-- Guión UGC y Copy Meta Ads -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
-                  <!-- Guión UGC 15s -->
-                  <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit flex flex-col justify-between shadow-xs">
-                    <div>
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <i class="fa-solid fa-video text-rose-500"></i> Guión UGC de 15 Segundos
-                        </span>
-                        <button onclick="copyUgcScript()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer">
-                          <i class="fa-regular fa-copy"></i> Copiar Guión
-                        </button>
-                      </div>
-                      <div class="space-y-2 mt-2">
-                        ${pacingHtml}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Copy Meta Ads -->
-                  <div class="app-card bg-white dark:bg-slate-900/80 p-3.5 rounded-xl border border-inherit flex flex-col justify-between shadow-xs">
-                    <div>
-                      <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <i class="fa-brands fa-meta text-blue-500"></i> Copy Persuasivo Meta Ads (COD)
-                        </span>
-                        <button onclick="copyMetaAdCopy()" class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1 cursor-pointer">
-                          <i class="fa-regular fa-copy"></i> Copiar Copy
-                        </button>
-                      </div>
-                      <pre class="font-sans text-[11px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar p-2.5 bg-slate-50 dark:bg-slate-950/50 rounded-lg border border-inherit select-all">${a.meta_ad_copy.body}</pre>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Segmentación y Recomendación de Pauta -->
-                <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-slate-900/80 rounded-xl border border-inherit text-xs shadow-xs">
-                  <div class="flex flex-wrap items-center gap-4">
-                    <div>
-                      <span class="text-[9px] uppercase font-bold text-slate-400 block">Edad Sugerida:</span>
-                      <span class="font-bold text-slate-800 dark:text-slate-200">${a.target_audience.age}</span>
-                    </div>
-                    <div>
-                      <span class="text-[9px] uppercase font-bold text-slate-400 block">Género:</span>
-                      <span class="font-bold text-slate-800 dark:text-slate-200">${a.target_audience.gender}</span>
-                    </div>
-                    <div>
-                      <span class="text-[9px] uppercase font-bold text-slate-400 block">Intereses Sugeridos (Meta Ads):</span>
-                      <div class="flex items-center gap-1 flex-wrap mt-0.5">
-                        ${a.target_audience.interests.map(it => `<span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-600 dark:text-slate-300">${it}</span>`).join('')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-          })() : ''}
 
           <!-- Gráfica de Ventas Por DÍA INDEPENDIENTE (Barras) -->
           <div class="app-card bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border mb-5">
@@ -2114,6 +2283,9 @@
           <div class="flex flex-wrap items-center justify-end gap-2.5">
             <button onclick="closeProductModal()" class="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 transition">
               Cerrar
+            </button>
+            <button onclick="openAiCreativeStudio(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.image_url}', '${p.category}')" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 flex items-center gap-2 shadow-sm transition cursor-pointer">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i> Generar Copys IA
             </button>
             <a href="${lensUrl}" target="_blank" class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 flex items-center gap-2 shadow-sm transition">
               <i class="fa-solid fa-camera"></i> Buscar con Google Lens
@@ -2290,13 +2462,20 @@
     // Cerrar modal al presionar la tecla Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        const aiModal = document.getElementById('ai-creative-modal');
+        if (aiModal && !aiModal.classList.contains('hidden')) {
+          closeAiCreativeStudio();
+          return;
+        }
         const roiModal = document.getElementById('roi-modal');
         if (roiModal && !roiModal.classList.contains('hidden')) {
           closeRoiModal();
+          return;
         }
         const prodModal = document.getElementById('product-modal');
         if (prodModal && !prodModal.classList.contains('hidden')) {
           closeProductModal();
+          return;
         }
       }
     });

@@ -575,7 +575,7 @@ def get_top_suppliers(limit: int = 40):
     return {"suppliers": rows}
 
 
-def generate_creative_angles(product: dict) -> dict:
+def generate_creative_angles(product: dict, focus: str = "all", variation_seed: int = 0) -> dict:
     name = product.get('name', 'Producto Ganador')
     category = product.get('category', 'General')
     cost = float(product.get('sale_price') or 20000)
@@ -677,7 +677,17 @@ def generate_creative_angles(product: dict) -> dict:
         age = "22 - 55 años"
         gender = "Hombres y Mujeres"
 
-    ad_copy = f"""🔥 ¿Todavía lidiando con {pain}?
+    # Variaciones dinámicas según foco
+    if focus == 'dolor':
+        headline_prefix = "⚠️ ¡ATENCIÓN COLOMBIA! "
+    elif focus == 'curiosidad':
+        headline_prefix = "💡 EL SECRETO REVELADO: "
+    elif focus == 'oferta':
+        headline_prefix = "🔥 OFERTA PAGO CONTRA ENTREGA: "
+    else:
+        headline_prefix = "🔥 "
+
+    ad_copy = f"""{headline_prefix}¿Todavía lidiando con {pain}?
 
 Descubre el {name.strip()}, la solución favorita de miles de colombianos para {benefit}.
 
@@ -688,7 +698,7 @@ Descubre el {name.strip()}, la solución favorita de miles de colombianos para {
 🚚 ENVÍO A TODA COLOMBIA CON PAGO CONTRA ENTREGA:
 Pide con total tranquilidad y paga en efectivo al recibir en la puerta de tu casa con Servientrega, Envía o Interrapidísimo. ¡Cero riesgos!
 
-👇 ¡Toca en 'Pedir Ahora' antes de que se agote el lote disponible!"""
+👇 ¡Toca en 'Pedir Ahora' antes de que se agote el lote disponible en bodega!"""
 
     master_prompt = f"""Actúa como un Media Buyer y Copywriter de élite especializado en Dropshipping con Pago Contra Entrega (COD) en Colombia.
 
@@ -710,6 +720,7 @@ Genera una estrategia de creativos de alta conversión:
         "product_id": product.get('id'),
         "product_name": name,
         "niche": niche,
+        "focus": focus,
         "hooks": [
             {"type": "Dolor Agudo", "hook": hook_1, "desc": "Ataca la frustración cotidiana para detener el scroll de inmediato"},
             {"type": "Curiosidad Viral", "hook": hook_2, "desc": "Despierta intriga con revelación o secreto de la industria"},
@@ -738,27 +749,29 @@ Genera una estrategia de creativos de alta conversión:
         "chatgpt_master_prompt": master_prompt
     }
 
-def get_or_generate_angles(prod_dict: dict) -> dict:
+def get_or_generate_angles(prod_dict: dict, force_regenerate: bool = False, focus: str = "all") -> dict:
     pid = prod_dict.get('id')
     if not pid:
-        return generate_creative_angles(prod_dict)
+        return generate_creative_angles(prod_dict, focus=focus)
     try:
         conn = get_db()
         c = conn.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS product_angles_cache (product_id INTEGER PRIMARY KEY, angles_json TEXT, created_at TEXT)")
-        c.execute("SELECT angles_json FROM product_angles_cache WHERE product_id = ?", (pid,))
-        row = c.fetchone()
-        if row and row[0]:
-            conn.close()
-            return json.loads(row[0])
-        angles = generate_creative_angles(prod_dict)
+        if not force_regenerate and focus == "all":
+            c.execute("SELECT angles_json FROM product_angles_cache WHERE product_id = ?", (pid,))
+            row = c.fetchone()
+            if row and row[0]:
+                conn.close()
+                return json.loads(row[0])
+        import random
+        angles = generate_creative_angles(prod_dict, focus=focus, variation_seed=random.randint(1, 9999))
         c.execute("INSERT OR REPLACE INTO product_angles_cache (product_id, angles_json, created_at) VALUES (?, ?, datetime('now'))", (pid, json.dumps(angles)))
         conn.commit()
         conn.close()
         return angles
     except Exception as e:
         print(f"[Angles Cache Error] {e}", flush=True)
-        return generate_creative_angles(prod_dict)
+        return generate_creative_angles(prod_dict, focus=focus)
 
 @app.get("/api/product/{product_id}")
 def get_product_detail(product_id: int):
@@ -843,7 +856,7 @@ def get_product_detail(product_id: int):
     }
 
 @app.get("/api/product/{product_id}/angles")
-def get_product_angles(product_id: int):
+def get_product_angles(product_id: int, regenerate: bool = False, focus: str = "all"):
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT * FROM products WHERE id = ?", (product_id,))
@@ -852,7 +865,9 @@ def get_product_angles(product_id: int):
     if not prod:
         return {"error": "Producto no encontrado"}
     prod_dict = dict(prod)
-    return get_or_generate_angles(prod_dict)
+    if prod_dict.get('store_name'):
+        prod_dict['supplier_name'] = prod_dict['store_name']
+    return get_or_generate_angles(prod_dict, force_regenerate=regenerate, focus=focus)
 
 @app.get("/api/products")
 def list_products(
