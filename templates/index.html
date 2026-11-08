@@ -757,12 +757,12 @@
   <!-- ================= MODAL CALCULADORA INTELIGENTE COD ================= -->
   <div id="roi-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="if(event.target === this) closeRoiModal()">
     <div id="roi-modal-card" class="app-card rounded-3xl max-w-lg w-full p-6 relative shadow-2xl border border-slate-200 dark:border-slate-800">
-      <button onclick="closeRoiModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-white w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center transition active:scale-90 cursor-pointer" title="Cerrar (Esc)">
-        <i class="fa-solid fa-xmark"></i>
+      <button type="button" id="btn-close-roi-modal" onclick="event.stopPropagation(); closeRoiModal()" class="absolute top-4 right-4 sm:top-5 sm:right-5 z-50 text-slate-400 hover:text-slate-700 dark:hover:text-white w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center transition active:scale-90 cursor-pointer shadow-xs" title="Cerrar Calculadora (Esc)" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark text-sm pointer-events-none"></i>
       </button>
 
       <!-- Bloque 1: Cabecera con Icono -->
-      <div id="roi-c-1" class="flex items-center gap-3 mb-4">
+      <div id="roi-c-1" class="flex items-center gap-3 mb-4 pr-12">
         <div class="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800 text-base shadow-xs">
           <i class="fa-solid fa-calculator"></i>
         </div>
@@ -1993,23 +1993,30 @@
 
     function closeRoiModal() {
       const modal = document.getElementById('roi-modal');
+      if (!modal) return;
       const card = document.getElementById('roi-modal-card');
+
+      // Remover clases de animación activa para permitir la transición de salida
+      modal.classList.remove('modal-backdrop-animate');
       if (card) {
-        card.style.transition = 'all 0.18s cubic-bezier(0.4, 0, 1, 1)';
+        card.classList.remove('modal-card-cascade');
+        card.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
         card.style.opacity = '0';
-        card.style.transform = 'translateY(-14px) scale(0.96)';
+        card.style.transform = 'translateY(-12px) scale(0.96)';
       }
-      modal.style.transition = 'opacity 0.18s ease';
+      modal.style.transition = 'opacity 0.15s ease';
       modal.style.opacity = '0';
+
       setTimeout(() => {
         modal.classList.add('hidden');
         modal.style.opacity = '';
+        modal.style.transition = '';
         if (card) {
           card.style.opacity = '';
           card.style.transform = '';
           card.style.transition = '';
         }
-      }, 180);
+      }, 160);
     }
 
     // Cerrar modal al presionar la tecla Escape
