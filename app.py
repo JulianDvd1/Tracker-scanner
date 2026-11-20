@@ -7,8 +7,8 @@ import zipfile
 import threading
 import time
 from typing import Optional, List
-from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import requests
 from dotenv import load_dotenv
 
@@ -168,8 +168,11 @@ def startup_event():
 
 @app.get("/api/sync-cloud")
 @app.post("/api/sync-cloud")
-def trigger_sync():
-    return sync_from_github(force=True)
+def trigger_sync(request: Request):
+    result = sync_from_github(force=True)
+    if "text/html" in request.headers.get("accept", "") and request.method == "GET":
+        return RedirectResponse(url="/", status_code=303)
+    return result
 
 TRIGGER_SECRET = os.getenv("TRIGGER_SECRET", "dropispy2026")
 GITHUB_WORKFLOW_URL = "https://api.github.com/repos/JulianDvd1/Tracker-scanner/actions/workflows/dropi_tracker.yml/dispatches"
